@@ -156,17 +156,9 @@ find_systemc
 check_yes $systemc_found "SystemC not found. Please specify the SystemC installation prefix (try '$0 --help')"
 log_info "SystemC found"
 
-find_gtk
-check_yes $gtk_found "gtk2 or gtk3 were not found. Please install the corresponding devel library"
-log_info "gtk found"
-
 find_sdl
 check_yes $sdl_found "sdl was not found. Please install the corresponding devel library"
 log_info "sdl found"
-
-find_libelf
-check_yes $libelf_found "libelf was not found. Please install the corresponding devel library"
-log_info "libelf found"
 
 plist_array=$(find_platforms | select_platforms "$platforms_list")
 
