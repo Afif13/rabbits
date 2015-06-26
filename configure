@@ -199,20 +199,7 @@ put_vars SRCS_DIR BUILD_DIR CC CFLAGS \
     SC_QEMU_CFLAGS SC_QEMU_LIBS REPOS_SRCS >>config.mak
 
 conf_h_gen CONFIG_SDL_UI >config.h
-
-# Workaround for GCC 4.4.7, __STDC_FORMAT_MACROS must be defined to use
-# inttypes.h. I don't know for other versions of GCC so this fix will need to
-# be adapted if the problem appears again.
-cat > $TMP_C << EOF
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 4 && __GNUC_PATCHLEVEL__ == 7
-int main(void) { return 0; }
-#else
-#error Workaround not needed
-#endif
-EOF
-if compile_tmpc ; then
-  echo '#define __STDC_FORMAT_MACROS' >>config.h
-fi
+echo '#define __STDC_FORMAT_MACROS' >>config.h
 
 # Platform build dir generation
 while IFS='|' read p r iss sta; do
