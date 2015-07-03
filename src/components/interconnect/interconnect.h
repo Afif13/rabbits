@@ -71,9 +71,6 @@ public:
         m_ranges.push_back(range);
     }
 
-    void connect_target(tlm_utils::simple_target_socket<slave_device> *target,
-                        uint64_t addr, uint64_t len);
-
     tlm_utils::simple_initiator_socket<interconnect> *
     decode_address(sc_dt::uint64 addr, sc_dt::uint64& target_address);
 
