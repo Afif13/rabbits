@@ -1,2 +1,2 @@
-obj-$(CONFIG_RABBITS) += master.o slave.o platform.o
+obj-$(CONFIG_RABBITS) += master.o slave.o platform.o platform_noc.o
 obj-$(CONFIG_RABBITS) += debug/
