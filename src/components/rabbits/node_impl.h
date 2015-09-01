@@ -191,6 +191,7 @@ unsigned int node<BUSWIDTH>::transport_dbg(tlm::tlm_generic_payload& trans)
 
 template <unsigned int BUSWIDTH >
 unsigned int node<BUSWIDTH>::transport_dbg_master(tlm::tlm_generic_payload& trans) {
+
     sc_dt::uint64 target_address;
     int i;
     route_info *route=new route_info;

@@ -63,9 +63,9 @@ public:
     tlm::tlm_initiator_socket<BUSWIDTH> * get_slave_target(int i) {
 	return m_nodes[route_table[i]->z*col*row+route_table[i]->x*col+route_table[i]->y]->target_slave;
     }
-    int get_route_x(int i){route_table[i]->x;}
-    int get_route_y(int i){route_table[i]->y;}
-    int get_route_z(int i){route_table[i]->z;}
+    int get_route_x(int i){return route_table[i]->x;}
+    int get_route_y(int i){return route_table[i]->y;}
+    int get_route_z(int i){return route_table[i]->z;}
 
     /*  */
 
@@ -84,7 +84,6 @@ public:
         }
 
         addr_offset = range->begin;
-
         return i;
     }
 
