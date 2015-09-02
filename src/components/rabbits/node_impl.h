@@ -19,103 +19,107 @@
 
 #include "node.h"
 
-#define MODNAME "node"
+#define MODNAME "Node"
 #include "utils/utils.h"
 
 template <unsigned int BUSWIDTH >
-node<BUSWIDTH>::node(sc_module_name name,Interconnect_NoC<BUSWIDTH> *p,int a,int b,int c) : sc_module(name)
+Node<BUSWIDTH>::Node(sc_module_name name,InterconnectNoc<BUSWIDTH> *p,
+                        int a,int b,int c) : sc_module(name)
 {
-	int i;
-	x=a;
-	y=b;
-	z=c;
-	p_inter=p;
-	for(i=0;i<4;i++){
-		m_targets[i]=new tlm::tlm_target_socket<BUSWIDTH>;
-		m_initiators[i]=new tlm::tlm_initiator_socket<BUSWIDTH>;
-		m_targets[i]->bind(*this);
-		m_initiators[i]->bind(*this);
-	}
+    int i;
+    x=a;
+    y=b;
+    z=c;
+    p_inter=p;
+    for (i=0;i<4;i++) {
+        m_targets[i]=new tlm::tlm_target_socket<BUSWIDTH>;
+        m_initiators[i]=new tlm::tlm_initiator_socket<BUSWIDTH>;
+        m_targets[i]->bind(*this);
+        m_initiators[i]->bind(*this);
+    }
 
-	target_slave = NULL;
-	initiator_master = NULL;
-	connect = -1;
+    target_slave = NULL;
+    initiator_master = NULL;
+    connect = -1;
 }
 
 template <unsigned int BUSWIDTH >
-void node<BUSWIDTH>::init_up(void)
+void Node<BUSWIDTH>::init_up(void)
 {
-	m_target_up=new tlm::tlm_target_socket<BUSWIDTH>;
-	m_initiator_up=new tlm::tlm_initiator_socket<BUSWIDTH>;
-	m_target_up->bind(*this);
-	m_initiator_up->bind(*this);
+    m_target_up=new tlm::tlm_target_socket<BUSWIDTH>;
+    m_initiator_up=new tlm::tlm_initiator_socket<BUSWIDTH>;
+    m_target_up->bind(*this);
+    m_initiator_up->bind(*this);
 
 }
 
 template <unsigned int BUSWIDTH >
-void node<BUSWIDTH>::init_down(void)
+void Node<BUSWIDTH>::init_down(void)
 {
-	m_target_down=new tlm::tlm_target_socket<BUSWIDTH>;
-	m_initiator_down=new tlm::tlm_initiator_socket<BUSWIDTH>;
-	m_target_down->bind(*this);
-	m_initiator_down->bind(*this);
+    m_target_down=new tlm::tlm_target_socket<BUSWIDTH>;
+    m_initiator_down=new tlm::tlm_initiator_socket<BUSWIDTH>;
+    m_target_down->bind(*this);
+    m_initiator_down->bind(*this);
 }
 
 template <unsigned int BUSWIDTH >
-node<BUSWIDTH>::~node()
+Node<BUSWIDTH>::~Node()
 {
-	int i;
-	for(i=0;i<4;i++){
-		delete m_targets[i];
-		delete m_initiators[i];
-	}
-	if(target_slave)
-		delete target_slave;
-	if(initiator_master)
-		delete initiator_master;
+    int i;
+    for (i=0;i<4;i++) {
+        delete m_targets[i];
+        delete m_initiators[i];
+    }
+    if (target_slave) {
+        delete target_slave;
+    }
+    if (initiator_master) {
+       delete initiator_master;
+    }
 }
 
 template <unsigned int BUSWIDTH >
-void node<BUSWIDTH>::b_transport(tlm::tlm_generic_payload& trans,
-        sc_time& delay)
+void Node<BUSWIDTH>::b_transport(tlm::tlm_generic_payload& trans,
+                                    sc_time& delay)
 {
-    route_info *route;
+    RouteInfo *route;
     wait(3, SC_NS);
 
     trans.get_extension(route);
 
-    if(!route) {
-	EPRINTF("Received message error\n");
-	exit(1);
+    if (!route) {
+        EPRINTF("Received message error\n");
+        exit(1);
     }
-    DPRINTF("N[%d,%d,%d] Routing message from node to (%d,%d,%d) with address = %08llx\n",this->x,this->y,this->z,route->x,route->y,route->z,trans.get_address());
+    DPRINTF("N[%d,%d,%d] Routing message from Node to (%d,%d,%d) with address = %08llx\n",
+            this->x,this->y,this->z,route->x,route->y,route->z,trans.get_address());
 
-   if(route->z > this->z)
-	(*m_initiator_up)->b_transport(trans, delay);
-   else if(route->z < this->z)
+    if (route->z > this->z)
+        (*m_initiator_up)->b_transport(trans, delay);
+    else if (route->z < this->z)
         (*m_initiator_down)->b_transport(trans, delay);
-   else if(route->x > this->x)
+    else if (route->x > this->x)
         (*m_initiators[2])->b_transport(trans, delay);
-   else if(route->x < this->x)
+    else if (route->x < this->x)
         (*m_initiators[0])->b_transport(trans, delay);
-   else if(route->y > this->y)
+    else if (route->y > this->y)
         (*m_initiators[1])->b_transport(trans, delay);
-   else if(route->y < this->y)
+    else if (route->y < this->y)
         (*m_initiators[3])->b_transport(trans, delay);
-   else
-	(*target_slave)->b_transport(trans,delay);
+    else
+        (*target_slave)->b_transport(trans,delay);
 
 
     wait(1, SC_NS);
 }
 
 template <unsigned int BUSWIDTH >
-void node<BUSWIDTH>::b_transport_master(tlm::tlm_generic_payload& trans,
-        sc_time& delay)
+void Node<BUSWIDTH>::b_transport_master(tlm::tlm_generic_payload& trans,
+                                        sc_time& delay)
 {
     sc_dt::uint64 target_address;
     int i;
-    route_info *route=new route_info;
+    RouteInfo *route=new RouteInfo;
 
     wait(3, SC_NS);
 
@@ -132,69 +136,73 @@ void node<BUSWIDTH>::b_transport_master(tlm::tlm_generic_payload& trans,
     route->y=p_inter->get_route_y(i);
     route->z=p_inter->get_route_z(i);
 
-    DPRINTF("N[%d,%d,%d] Routing message from master to (%d,%d,%d) with address = %08llx\n",this->x,this->y,this->z,route->x,route->y,route->z,trans.get_address());
+    DPRINTF("N[%d,%d,%d] Routing message from master to (%d,%d,%d) with address = %08llx\n",
+            this->x,this->y,this->z,route->x,route->y,route->z,trans.get_address());
 
     //Route the transaction
-   if(route->z > this->z)
+    if (route->z > this->z)
         (*m_initiator_up)->b_transport(trans, delay);
-   else if(route->z < this->z)
+    else if (route->z < this->z)
         (*m_initiator_down)->b_transport(trans, delay);
-   else if(route->x > this->x)
-	(*m_initiators[2])->b_transport(trans, delay);
-   else if(route->x < this->x)
-	(*m_initiators[0])->b_transport(trans, delay);
-   else if(route->y > this->y)
-	(*m_initiators[1])->b_transport(trans, delay);
-   else if(route->y < this->y)
-	(*m_initiators[3])->b_transport(trans, delay);
-   else EPRINTF("ERROR Routing Transaction\n");
+    else if (route->x > this->x)
+        (*m_initiators[2])->b_transport(trans, delay);
+    else if (route->x < this->x)
+        (*m_initiators[0])->b_transport(trans, delay);
+    else if (route->y > this->y)
+        (*m_initiators[1])->b_transport(trans, delay);
+    else if (route->y < this->y)
+        (*m_initiators[3])->b_transport(trans, delay);
+    else
+        EPRINTF("ERROR Routing Transaction\n");
 
    wait(1, SC_NS);
 }
 
 template <unsigned int BUSWIDTH >
-void node<BUSWIDTH>::register_transport_master() {
-   this->initiator_master->register_b_transport(this,&node::b_transport_master);
-   this->initiator_master->register_transport_dbg(this, &node::transport_dbg_master);
-   this->initiator_master->register_get_direct_mem_ptr(this, &node::get_direct_mem_ptr);
+void Node<BUSWIDTH>::register_transport_master() {
+    this->initiator_master->register_b_transport(this,
+                                               &Node::b_transport_master);
+    this->initiator_master->register_transport_dbg(this,
+                                               &Node::transport_dbg_master);
+    this->initiator_master->register_get_direct_mem_ptr(this,
+                                               &Node::get_direct_mem_ptr);
 }
 
 template <unsigned int BUSWIDTH >
-unsigned int node<BUSWIDTH>::transport_dbg(tlm::tlm_generic_payload& trans)
+unsigned int Node<BUSWIDTH>::transport_dbg(tlm::tlm_generic_payload& trans)
 {
-    route_info *route;
+    RouteInfo *route;
 
     trans.get_extension(route);
 
-    if(!route) {
-	EPRINTF("Received message error\n");
-	exit(1);
+    if (!route) {
+        EPRINTF("Received message error\n");
+        exit(1);
     }
 
-   if(route->z > this->z)
+    if(route->z > this->z)
         return (*m_initiator_up)->transport_dbg(trans);
-   else if(route->z < this->z)
+    else if(route->z < this->z)
         return (*m_initiator_down)->transport_dbg(trans);
-   else if(route->x > this->x)
+    else if(route->x > this->x)
         return (*m_initiators[2])->transport_dbg(trans);
-   else if(route->x < this->x)
+    else if(route->x < this->x)
         return (*m_initiators[0])->transport_dbg(trans);
-   else if(route->y > this->y)
+    else if(route->y > this->y)
         return (*m_initiators[1])->transport_dbg(trans);
-   else if(route->y < this->y)
+    else if(route->y < this->y)
         return (*m_initiators[3])->transport_dbg(trans);
-   else
+    else
 	return (*target_slave)->transport_dbg(trans);
-
 
 }
 
 template <unsigned int BUSWIDTH >
-unsigned int node<BUSWIDTH>::transport_dbg_master(tlm::tlm_generic_payload& trans) {
+unsigned int Node<BUSWIDTH>::transport_dbg_master(tlm::tlm_generic_payload& trans) {
 
     sc_dt::uint64 target_address;
     int i;
-    route_info *route=new route_info;
+    RouteInfo *route=new RouteInfo;
 
     i = p_inter->decode_address_i(trans.get_address(), target_address);
     if (i == -1) {
@@ -210,48 +218,48 @@ unsigned int node<BUSWIDTH>::transport_dbg_master(tlm::tlm_generic_payload& tran
 
 
     //Route the transaction
-   if(route->z > this->z)
+    if(route->z > this->z)
         return (*m_initiator_up)->transport_dbg(trans);
-   else if(route->z < this->z)
+    else if(route->z < this->z)
         return (*m_initiator_down)->transport_dbg(trans);
-   else if(route->x > this->x)
-	return (*m_initiators[2])->transport_dbg(trans);
-   else if(route->x < this->x)
-	return (*m_initiators[0])->transport_dbg(trans);
-   else if(route->y > this->y)
-	return (*m_initiators[1])->transport_dbg(trans);
-   else if(route->y < this->y)
-	return (*m_initiators[3])->transport_dbg(trans);
-   else EPRINTF("ERROR Routing Transaction\n");
+    else if(route->x > this->x)
+        return (*m_initiators[2])->transport_dbg(trans);
+    else if(route->x < this->x)
+        return (*m_initiators[0])->transport_dbg(trans);
+    else if(route->y > this->y)
+        return (*m_initiators[1])->transport_dbg(trans);
+    else if(route->y < this->y)
+        return (*m_initiators[3])->transport_dbg(trans);
+    else
+        EPRINTF("ERROR Routing Transaction\n");
 
-
-  return 0;
+    return 0;
 }
 template <unsigned int BUSWIDTH>
-bool node<BUSWIDTH>::get_direct_mem_ptr(tlm::tlm_generic_payload& trans,
-                                    tlm::tlm_dmi& dmi_data)
+bool Node<BUSWIDTH>::get_direct_mem_ptr(tlm::tlm_generic_payload& trans,
+                                        tlm::tlm_dmi& dmi_data)
 {
-        bool ret;
-        sc_dt::uint64 offset;
-        int i;
-        tlm::tlm_initiator_socket<BUSWIDTH> *target;
+    bool ret;
+    sc_dt::uint64 offset;
+    int i;
+    tlm::tlm_initiator_socket<BUSWIDTH> *target;
 
-        i = p_inter->decode_address_i(trans.get_address(), offset);
-        if (i == -1) {
-            return false;
-        }
+    i = p_inter->decode_address_i(trans.get_address(), offset);
+    if (i == -1) {
+        return false;
+    }
 
-        target=p_inter->get_slave_target(i);
-        trans.set_address(trans.get_address() - offset);
+    target=p_inter->get_slave_target(i);
+    trans.set_address(trans.get_address() - offset);
 
-        ret = (*target)->get_direct_mem_ptr(trans, dmi_data);
+    ret = (*target)->get_direct_mem_ptr(trans, dmi_data);
 
-        if (ret) {
-            dmi_data.set_start_address(dmi_data.get_start_address() + offset);
-            dmi_data.set_end_address(dmi_data.get_end_address() + offset);
-        }
+    if (ret) {
+        dmi_data.set_start_address(dmi_data.get_start_address() + offset);
+        dmi_data.set_end_address(dmi_data.get_end_address() + offset);
+    }
 
-        return ret;
+    return ret;
 }
 
 

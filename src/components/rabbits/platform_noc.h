@@ -1,7 +1,7 @@
 #ifndef __PLATFORM_NOC_H__
 #define __PLATFORM_NOC_H__
 
-class Platform_NoC;
+class PlatformNoc;
 
 #include "components/rabbits/master.h"
 #include "components/rabbits/slave.h"
@@ -12,7 +12,7 @@ class Platform_NoC;
 #include <tlm_utils/simple_target_socket.h>
 #include <vector>
 
-class Platform_NoC: public sc_module
+class PlatformNoc: public sc_module
 {
 protected:
     struct mapping_descr {
@@ -24,22 +24,29 @@ protected:
     std::vector<Master *> m_initiators;
     std::vector<mapping_descr *> m_mappings;
 
-    Interconnect_NoC<32> *m_interco;
+    InterconnectNoc<32> *m_interco;
 
     virtual void end_of_elaboration();
 
 public:
-    Platform_NoC(sc_module_name name);
-    ~Platform_NoC();
+    PlatformNoc(sc_module_name name);
+    ~PlatformNoc();
 
-    void connect_target(Slave *target, uint64_t addr, uint64_t len,int x,int y,int z);
+    void connect_target(Slave *target, uint64_t addr, uint64_t len,
+                            int x,int y,int z);
 
-    void connect_target(Slave *target, uint64_t addr, uint64_t len,int x,int y){connect_target(target,addr,len,x,y,0);};
+    void connect_target(Slave *target, uint64_t addr, uint64_t len,
+                            int x,int y)
+    {
+        connect_target(target,addr,len,x,y,0);
+    }
 
     void connect_target(Slave *target, uint64_t addr, uint64_t len);
 
     template <unsigned int BUSWIDTH>
-    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target, uint64_t addr, uint64_t len,int x,int y,int z) {
+    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target, uint64_t addr,
+                            uint64_t len,int x,int y,int z)
+    {
         mapping_descr *descr = new mapping_descr;
 
         descr->addr = addr;
@@ -50,7 +57,9 @@ public:
     }
 
     template <unsigned int BUSWIDTH>
-    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target, uint64_t addr, uint64_t len,int x,int y) {
+    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target,
+                            uint64_t addr, uint64_t len,int x,int y)
+    {
         mapping_descr *descr = new mapping_descr;
 
         descr->addr = addr;
@@ -61,7 +70,9 @@ public:
     }
 
     template <unsigned int BUSWIDTH>
-    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target, uint64_t addr, uint64_t len) {
+    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target,
+                            uint64_t addr, uint64_t len)
+    {
         mapping_descr *descr = new mapping_descr;
 
         descr->addr = addr;
@@ -73,22 +84,30 @@ public:
 
     void connect_initiator(Master *initiator,int x,int y,int z);
 
-    void connect_initiator(Master *initiator,int x,int y){connect_initiator(initiator,x,y,0);};
+    void connect_initiator(Master *initiator,int x,int y)
+    {
+        connect_initiator(initiator,x,y,0);
+    }
 
     void connect_initiator(Master *initiator);
 
     template <unsigned int BUSWIDTH>
-    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator,int x,int y,int z) {
+    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator,
+                                int x, int y, int z)
+    {
         m_interco->connect_initiator(initiator,x,y,z);
     }
 
     template <unsigned int BUSWIDTH>
-    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator,int x,int y) {
+    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator,
+                                int x, int y)
+    {
         m_interco->connect_initiator(initiator,x,y,0);
     }
 
     template <unsigned int BUSWIDTH>
-    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator) {
+    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator)
+    {
         m_interco->Interconnect<BUSWIDTH>::connect_initiator(initiator);
     }
 

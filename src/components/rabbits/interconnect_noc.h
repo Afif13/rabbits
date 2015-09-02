@@ -21,7 +21,7 @@
 #ifndef _INTERCONNECT_NOC_H
 #define _INTERCONNECT_NOC_H
 
-template <unsigned int BUSWIDTH> class Interconnect_NoC;
+template <unsigned int BUSWIDTH> class InterconnectNoc;
 
 #include <vector>
 
@@ -30,28 +30,28 @@ template <unsigned int BUSWIDTH> class Interconnect_NoC;
 #include "components/rabbits/node.h"
 #include <tlm>
 
-#define MODNAME "interconnect_NoC"
+#define MODNAME "InterconnectNoc"
 #include "utils/utils.h"
 
 
 enum {
-        ABSTRACT_NOC = 0,
-        MESH = 1,
-        TORUS = 2,
+    ABSTRACT_NOC = 0,
+    MESH = 1,
+    TORUS = 2,
 };
 
 
 template <unsigned int BUSWIDTH = 32>
-class Interconnect_NoC: public Interconnect<BUSWIDTH>
+class InterconnectNoc: public Interconnect<BUSWIDTH>
 {
 protected:
     struct RouteInfo {
-	int x;
-	int y;
-	int z;
+        int x;
+        int y;
+        int z;
     };
 
-    std::vector<node<BUSWIDTH> *> m_nodes;
+    std::vector<Node<BUSWIDTH> *> m_nodes;
     std::vector<RouteInfo *> route_table;
     int col;
     int row;
@@ -60,14 +60,24 @@ protected:
     int n_type;
 
 public:
-    tlm::tlm_initiator_socket<BUSWIDTH> * get_slave_target(int i) {
-	return m_nodes[route_table[i]->z*col*row+route_table[i]->x*col+route_table[i]->y]->target_slave;
+    tlm::tlm_initiator_socket<BUSWIDTH> * get_slave_target(int i)
+    {
+        return m_nodes[route_table[i]->z*col*row+
+                        route_table[i]->x*col+
+                        route_table[i]->y]->target_slave;
     }
-    int get_route_x(int i){return route_table[i]->x;}
-    int get_route_y(int i){return route_table[i]->y;}
-    int get_route_z(int i){return route_table[i]->z;}
-
-    /*  */
+    int get_route_x(int i)
+    {
+        return route_table[i]->x;
+    }
+    int get_route_y(int i)
+    {
+        return route_table[i]->y;
+    }
+    int get_route_z(int i)
+    {
+        return route_table[i]->z;
+    }
 
     int decode_address_i(sc_dt::uint64 addr, sc_dt::uint64& addr_offset)
     {
@@ -87,24 +97,30 @@ public:
         return i;
     }
 
-    SC_HAS_PROCESS(Interconnect_NoC);
-    Interconnect_NoC(sc_module_name name) : Interconnect<BUSWIDTH>(name) {;}
+    SC_HAS_PROCESS(InterconnectNoc);
+    InterconnectNoc(sc_module_name name) : Interconnect<BUSWIDTH>(name) {}
 
-    virtual ~Interconnect_NoC()
+    virtual ~InterconnectNoc()
     {
-	int i;
+        int i;
 
         for (i = 0; i < m_nodes.size(); i++) {
-           delete m_nodes[i];
+            delete m_nodes[i];
        }
     }
 
+    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator,
+                            int a, int b, int c);
 
-    void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator,int a,int b,int c);
+    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target,
+                            uint64_t addr, uint64_t len, int a, int b, int c);
 
-    void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target,uint64_t addr, uint64_t len,int a,int b,int c);
-
-    void create_network(int type){n_type=type;printf("\n---------\n Abstract NoC Created \n---------\n");} //the abstract NoC
+    //the abstract NoC
+    void create_network(int type)
+    {
+        n_type=type;
+        DPRINTF("\n---------\n Abstract NoC Created \n---------\n");
+    }
 
     void create_network(int type,int a,int b,int h);
 
