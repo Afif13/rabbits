@@ -46,16 +46,16 @@ class InterconnectNoc: public Interconnect<BUSWIDTH>
 {
 protected:
     struct RouteInfo {
-        int x;
-        int y;
-        int z;
+        uint16_t x;
+        uint16_t y;
+        uint16_t z;
     };
 
     std::vector<Node<BUSWIDTH> *> m_nodes;
     std::vector<RouteInfo *> route_table;
-    int col;
-    int row;
-    int Z;
+    uint16_t col;
+    uint16_t row;
+    uint16_t Z;
 
     int n_type;
 
@@ -66,17 +66,25 @@ public:
                         route_table[i]->x*col+
                         route_table[i]->y]->target_slave;
     }
-    int get_route_x(int i)
+    uint16_t get_route_x(int i)
     {
         return route_table[i]->x;
     }
-    int get_route_y(int i)
+    uint16_t get_route_y(int i)
     {
         return route_table[i]->y;
     }
-    int get_route_z(int i)
+    uint16_t get_route_z(int i)
     {
         return route_table[i]->z;
+    }
+    uint16_t get_X(void)
+    {
+        return col;
+    }
+    uint16_t get_Y(void)
+    {
+        return row;
     }
 
     int decode_address_i(sc_dt::uint64 addr, sc_dt::uint64& addr_offset)
@@ -110,10 +118,11 @@ public:
     }
 
     void connect_initiator(tlm::tlm_initiator_socket<BUSWIDTH> *initiator,
-                            int a, int b, int c);
+                            uint16_t a, uint16_t b, uint16_t c);
 
     void connect_target(tlm::tlm_target_socket<BUSWIDTH> *target,
-                            uint64_t addr, uint64_t len, int a, int b, int c);
+                            uint64_t addr, uint64_t len,
+                            uint16_t a, uint16_t b, uint16_t c);
 
     //the abstract NoC
     void create_network(int type)
@@ -122,7 +131,7 @@ public:
         DPRINTF("\n---------\n Abstract NoC Created \n---------\n");
     }
 
-    void create_network(int type,int a,int b,int h);
+    void create_network(int type,uint16_t a,uint16_t b,uint16_t h);
 
 
 };

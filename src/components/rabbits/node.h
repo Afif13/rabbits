@@ -48,9 +48,9 @@ struct RouteInfo:tlm::tlm_extension<RouteInfo> {
         z = static_cast<RouteInfo const&>(ext).z;
     }
 
-    int x;
-    int y;
-    int z;
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
 };
 
 template <unsigned int BUSWIDTH = 32>
@@ -63,7 +63,7 @@ public:
 
     SC_HAS_PROCESS(Node);
     Node(sc_module_name name,InterconnectNoc<BUSWIDTH> *p,
-            int x,int y,int z);
+            uint16_t x,uint16_t y,uint16_t z, int type);
     ~Node();
 
     tlm::tlm_target_socket<BUSWIDTH> *get_top(void)
@@ -137,15 +137,15 @@ public:
     };
 
 
-    int get_x(void)
+    uint16_t get_x(void)
     {
         return x;
     }
-    int get_y(void)
+    uint16_t get_y(void)
     {
         return y;
     }
-    int get_z(void)
+    uint16_t get_z(void)
     {
         return z;
     }
@@ -154,15 +154,15 @@ public:
         return connect;
     }
 
-    void set_x(int a)
+    void set_x(uint16_t a)
     {
         x=a;
     }
-    void set_y(int a)
+    void set_y(uint16_t a)
     {
         y=a;
     }
-    void set_z(int a)
+    void set_z(uint16_t a)
     {
         z=a;
     }
@@ -192,6 +192,16 @@ protected:
     unsigned int transport_dbg(tlm::tlm_generic_payload& trans);
     unsigned int transport_dbg_master(tlm::tlm_generic_payload& trans);
 
+    void y_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
+                                                RouteInfo *route);
+    unsigned int y_first_routing_dbg(tlm::tlm_generic_payload& trans,
+                                                RouteInfo *route);
+
+    void x_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
+                                                RouteInfo *route);
+    unsigned int x_first_routing_dbg(tlm::tlm_generic_payload& trans,
+                                                RouteInfo *route);
+
     virtual bool get_direct_mem_ptr(tlm::tlm_generic_payload& trans,
                                                 tlm::tlm_dmi& dmi_data);
     virtual tlm::tlm_sync_enum nb_transport_fw(tlm::tlm_generic_payload& trans,
@@ -218,10 +228,12 @@ protected:
         abort();
     }
 
-    int x;
-    int y;
-    int z;
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
 
+    //to know if the network is a MESH or a TORUS or something else ...
+    int type;
     //to test if the Node is connected to an IP or not
     int connect;
 

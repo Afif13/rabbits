@@ -26,7 +26,7 @@
 template <unsigned int BUSWIDTH>
 void InterconnectNoc<BUSWIDTH>::connect_initiator(
                     tlm::tlm_initiator_socket<BUSWIDTH> *initiator,
-                    int a, int b, int c)
+                    uint16_t a, uint16_t b, uint16_t c)
 {
     if (a < 0 || a > col) {
         EPRINTF("Cannot Connect Initiator, x is out of the range\n");
@@ -56,7 +56,8 @@ void InterconnectNoc<BUSWIDTH>::connect_initiator(
 template <unsigned int BUSWIDTH>
 void InterconnectNoc<BUSWIDTH>::connect_target(
                     tlm::tlm_target_socket<BUSWIDTH> *target,
-                    uint64_t addr, uint64_t len,int a,int b,int c)
+                    uint64_t addr, uint64_t len,
+                    uint16_t a, uint16_t b, uint16_t c)
 {
     if (a < 0 || a > col) {
         EPRINTF("Cannot Connect Target, x are out of the range");
@@ -94,7 +95,7 @@ void InterconnectNoc<BUSWIDTH>::connect_target(
 }
 
 template <unsigned int BUSWIDTH>
-void InterconnectNoc<BUSWIDTH>::create_network(int type,int a,int b,int h) 
+void InterconnectNoc<BUSWIDTH>::create_network(int type, uint16_t a, uint16_t b, uint16_t h)
 {
     int i,j,k;
     char ch[10];
@@ -109,7 +110,7 @@ void InterconnectNoc<BUSWIDTH>::create_network(int type,int a,int b,int h)
         for (i=0;i<row;i++) {
             for (j=0;j<col;j++) {
                 sprintf(ch,"N[%d,%d,%d]",i,j,k);
-                n = new Node<BUSWIDTH>(ch,this,i,j,k);
+                n = new Node<BUSWIDTH>(ch,this,i,j,k,type);
                 m_nodes.push_back(n);
             }
         }
