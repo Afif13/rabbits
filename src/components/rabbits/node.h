@@ -192,12 +192,22 @@ protected:
     unsigned int transport_dbg(tlm::tlm_generic_payload& trans);
     unsigned int transport_dbg_master(tlm::tlm_generic_payload& trans);
 
-    void y_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
+    int z_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
+                                                RouteInfo *route);
+    unsigned int z_first_routing_dbg(tlm::tlm_generic_payload& trans,
+                                                RouteInfo *route);
+
+    int xy_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
+                                                RouteInfo *route);
+    unsigned int xy_first_routing_dbg(tlm::tlm_generic_payload& trans,
+                                                RouteInfo *route);
+
+    int y_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
                                                 RouteInfo *route);
     unsigned int y_first_routing_dbg(tlm::tlm_generic_payload& trans,
                                                 RouteInfo *route);
 
-    void x_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
+    int x_first_routing(tlm::tlm_generic_payload& trans, sc_time &delay,
                                                 RouteInfo *route);
     unsigned int x_first_routing_dbg(tlm::tlm_generic_payload& trans,
                                                 RouteInfo *route);
