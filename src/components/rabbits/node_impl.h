@@ -20,11 +20,12 @@
 #include "node.h"
 
 #define MODNAME "Node"
+#define DEBUG_TRACE
 #include "utils/utils.h"
 
 
-#define ROUTING_3D z_first_routing
-#define ROUTING_2D y_first_routing
+#define ROUTING_3D z_first_routing //xy_first_routing
+#define ROUTING_2D y_first_routing //x_first_routing
 
 
 #define CONC_(A,B) A ## B
@@ -102,13 +103,13 @@ void Node<BUSWIDTH>::b_transport(tlm::tlm_generic_payload& trans,
         EPRINTF("Received message error\n");
         exit(1);
     }
-    DPRINTF("N[%d,%d,%d] Routing message to (%d,%d,%d) with address = %08llx\n",
-            this->x,this->y,this->z,route->x,route->y,route->z,trans.get_address());
+    DPRINTF("N[%d,%d,%d] Routing message to (%d,%d,%d) with address = %08llx at t=%lu \n",
+            this->x, this->y, this->z, route->x, route->y, route->z,
+            trans.get_address(), sc_time_stamp().value()/1000);
 
     if (!ROUTING_3D(trans,delay,route))
         EPRINTF("ERROR Routing Transaction\n");
 
-    wait(1, SC_NS);
 }
 
 template <unsigned int BUSWIDTH >
@@ -134,13 +135,13 @@ void Node<BUSWIDTH>::b_transport_master(tlm::tlm_generic_payload& trans,
     route->y=p_inter->get_route_y(i);
     route->z=p_inter->get_route_z(i);
 
-    DPRINTF("N[%d,%d,%d] Routing message from master to (%d,%d,%d) with address = %08llx\n",
-            this->x,this->y,this->z,route->x,route->y,route->z,trans.get_address());
+    DPRINTF("N[%d,%d,%d] Routing message from master to (%d,%d,%d) with address = %08llx at t=%lu\n",
+            this->x, this->y, this->z, route->x, route->y, route->z,
+            trans.get_address(), sc_time_stamp().value()/1000);
 
     if (!ROUTING_3D(trans,delay,route))
         EPRINTF("ERROR Routing Transaction\n");
 
-   wait(1, SC_NS);
 }
 
 template <unsigned int BUSWIDTH >

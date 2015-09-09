@@ -1,0 +1,1 @@
+obj-y = NoC.o main.o system_init.o
