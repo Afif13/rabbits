@@ -19,6 +19,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include "raspberry_system_timer.h"
 
 #define MODNAME "rpi-sys-timer"
@@ -26,14 +27,16 @@
 
 #define TIMER_CLOCK_FV 1000000000
 
+const sc_time raspberry_system_timer::PERIOD = sc_time(100, SC_NS);
+
 raspberry_system_timer::raspberry_system_timer(sc_module_name module_name) :
         Slave(module_name)
 {
-    ns_period = 100;
 
     clo = chi = cmp0 = cmp1 = cmp2 = cmp3 = 0;
 
     SC_THREAD(timer_thread);
+    SC_THREAD(irq_thread);
 }
 
 raspberry_system_timer::~raspberry_system_timer()
@@ -55,54 +58,50 @@ void raspberry_system_timer::bus_cb_write_32(uint64_t ofs, uint32_t *data, bool 
             if (((val1 & 0x1)) && (cs & 0x1)) {
                 cs &= 0xFE;
                 DPRINTF("event notify\n");
-                ev_wake.notify();
+                ev_irq_update.notify();
             }
             if (((val1 & 0x2) >> 1) && ((cs & 0x2) >> 1)) {
                 cs &= 0xFD;
                 DPRINTF("event notify\n");
-                ev_wake.notify();
+                ev_irq_update.notify();
             }
             if (((val1 & 0x4) >> 2) && ((cs & 0x4) >> 2)) {
                 cs &= 0xFB;
                 DPRINTF("event notify\n");
-                ev_wake.notify();
+                ev_irq_update.notify();
             }
             if (((val1 & 0x8) >> 3) && ((cs & 0x8) >> 3)) {
                 cs &= 0xF7;
                 DPRINTF("event notify\n");
-                ev_wake.notify();
+                ev_irq_update.notify();
             }
             break;
         }
         cs = val1 & 0xF;
         break;
 
-    case TIMER_CLO:
-        clo = val1;
-        break;
-
-    case TIMER_CHI:
-        chi = val1;
-        break;
-
     case TIMER_CMP0:
         cmp0 = val1;
+        ev_inval_deadline.notify();
         break;
 
     case TIMER_CMP1:
         cmp1 = val1;
+        ev_inval_deadline.notify();
         break;
 
     case TIMER_CMP2:
         cmp2 = val1;
+        ev_inval_deadline.notify();
         break;
 
     case TIMER_CMP3:
         cmp3 = val1;
+        ev_inval_deadline.notify();
         break;
 
     default:
-        printf("Bad %s::%s ofs=0x%X, data=0x%X-%X!\n", name(),
+        EPRINTF("Bad %s::%s ofs=0x%X, data=0x%X-%X!\n", name(),
                 __FUNCTION__, (unsigned int) ofs,
                 (unsigned int) *((uint32_t *) data + 0),
                 (unsigned int) *((uint32_t *) data + 1));
@@ -114,13 +113,16 @@ void raspberry_system_timer::bus_cb_write_32(uint64_t ofs, uint32_t *data, bool 
 
 void raspberry_system_timer::bus_cb_read_32(uint64_t ofs, uint32_t *data, bool &bErr)
 {
+    uint32_t elapsed;
+
     switch (ofs) {
     case TIMER_CS:
         *data = cs;
         break;
 
     case TIMER_CLO:
-        *data = clo;
+        elapsed = static_cast<uint32_t>((sc_time_stamp() - m_prev_deadline) / PERIOD);
+        *data = clo + elapsed;
         break;
 
     case TIMER_CHI:
@@ -143,61 +145,78 @@ void raspberry_system_timer::bus_cb_read_32(uint64_t ofs, uint32_t *data, bool &
         *data = cmp3;
         break;
     default:
-        printf("Bad %s::%s ofs=0x%X!\n", name(), __FUNCTION__,
+        EPRINTF("Bad %s::%s ofs=0x%X!\n", name(), __FUNCTION__,
                 (unsigned int) ofs);
         exit(1);
     }
     bErr = false;
+    DPRINTF("read to ofs: 0x%x, val:%" PRIx32 "\n", ofs, *data);
+}
+
+sc_time raspberry_system_timer::compute_next_deadline() const
+{
+    sc_time ret;
+    double next_deadline = 0;
+
+    next_deadline = static_cast<double>(std::min(std::min(cmp0-clo, cmp1-clo),
+                                                 std::min(cmp2-clo, cmp3-clo)));
+
+    DPRINTF("Next deadline is %f\n", next_deadline);
+    return next_deadline * PERIOD;
 }
 
 void raspberry_system_timer::timer_thread()
 {
-    while (1) {
-        wait(ns_period, SC_NS);
+    sc_time next_deadline;
+    uint32_t elapsed;
 
-        if (clo == 0xFFFFFFFF) {
-            clo = 0;
-            chi++;
+    for (;;) {
+        next_deadline = compute_next_deadline();
+        m_prev_deadline = sc_time_stamp();
+
+        if (next_deadline != SC_ZERO_TIME) {
+            wait(next_deadline, ev_inval_deadline);
         } else {
-            clo++;
+            wait(ev_inval_deadline);
         }
+
+        elapsed = static_cast<uint32_t>((sc_time_stamp() - m_prev_deadline) / PERIOD);
+
+        if (clo + elapsed < clo) {
+            chi++;
+        }
+        clo += elapsed;
+
+        DPRINTF("clo: %" PRIx32 ", cmp3: %" PRIx32 "\n", clo, cmp3);
 
         if (clo != 0) {
             if (clo == cmp0) {
                 cs |= 1;
-                irq.write(true);
+                ev_irq_update.notify();
             }
             if (clo == cmp1) {
                 cs |= 2;
-                irq.write(true);
+                ev_irq_update.notify();
             }
             if (clo == cmp2) {
                 cs |= 4;
-                irq.write(true);
+                ev_irq_update.notify();
             }
             if (clo == cmp3) {
                 cs |= 8;
-                irq.write(true);
+                ev_irq_update.notify();
             }
-        }
-        if (irq) {
-            DPRINTF("irq cnt=0x%x\n", clo);
-            wait(ev_wake);
-            DPRINTF("Wake up after interrupt\n");
-            irq.write(false);
         }
     }
 }
 
-/*
- * Vim standard variables
- * vim:set ts=4 expandtab tw=80 cindent syntax=c:
- *
- * Emacs standard variables
- * Local Variables:
- * mode: c
- * tab-width: 4
- * c-basic-offset: 4
- * indent-tabs-mode: nil
- * End:
- */
+void raspberry_system_timer::irq_thread()
+{
+    for(;;) {
+        irq.write(cs != 0);
+        if(irq) {
+            DPRINTF("irq\n");
+        }
+        wait(ev_irq_update);
+    }
+}

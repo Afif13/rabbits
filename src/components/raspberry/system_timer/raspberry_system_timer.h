@@ -42,14 +42,15 @@ private:
     void bus_cb_write_32(uint64_t addr, uint32_t *data, bool &bErr);
 
     void timer_thread();
+    void irq_thread();
+    sc_time compute_next_deadline() const;
 
 public:
     //ports
     sc_out<bool> irq;
 
 private:
-    double ns_period;
-    sc_event ev_wake;
+    static const sc_time PERIOD;
     uint32_t cmp0;
     uint32_t cmp1;
     uint32_t cmp2;
@@ -58,19 +59,11 @@ private:
     uint32_t chi;
     uint32_t cs;
 
+    sc_time m_prev_deadline;
+
+    sc_event ev_inval_deadline;
+    sc_event ev_irq_update;
+
 };
 
 #endif
-
-/*
- * Vim standard variables
- * vim:set ts=4 expandtab tw=80 cindent syntax=c:
- *
- * Emacs standard variables
- * Local Variables:
- * mode: c
- * tab-width: 4
- * c-basic-offset: 4
- * indent-tabs-mode: nil
- * End:
- */
