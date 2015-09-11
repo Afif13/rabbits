@@ -4,3 +4,4 @@ obj-$(CONFIG_MEMORY) += memory/
 obj-$(CONFIG_QEMU_WRAPPER) += qemu_wrapper/
 
 obj-y += raspberry/
+obj-y += generator/
