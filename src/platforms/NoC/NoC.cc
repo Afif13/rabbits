@@ -57,19 +57,19 @@ NoC::NoC(sc_module_name _name, init_struct *cfg) :
 
 
 
-    create_network(MESH,3,3);
+    create_network(MESH,2,6);
 
     //Slaves
-    connect_target(m_ram[0], 0x00000000ul, RAMSIZE,1,2);
-    connect_target(m_ram[1], 0x10000000ul, RAMSIZE,2,0);
-    connect_target(m_ram[2], 0x20000000ul, RAMSIZE,2,1);
-    connect_target(m_ram[3], 0x30000000ul, RAMSIZE,2,2);
+    connect_target(m_ram[0], 0x00000000ul, RAMSIZE,0,4);
+    connect_target(m_ram[1], 0x10000000ul, RAMSIZE,0,3);
+    connect_target(m_ram[2], 0x20000000ul, RAMSIZE,0,2);
+    connect_target(m_ram[3], 0x30000000ul, RAMSIZE,0,1);
 
     //Masters
-    connect_initiator(m_gen[0],0,0);
-    connect_initiator(m_gen[1],0,1);
-    connect_initiator(m_gen[2],0,2);
-    connect_initiator(m_gen[3],1,0);
+    connect_initiator(m_gen[0],1,0);
+    connect_initiator(m_gen[1],1,1);
+    connect_initiator(m_gen[2],1,2);
+    connect_initiator(m_gen[3],1,3);
 
 }
 
