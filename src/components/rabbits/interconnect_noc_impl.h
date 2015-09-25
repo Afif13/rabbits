@@ -33,17 +33,17 @@ void InterconnectNoc<BUSWIDTH>::connect_initiator(
         exit(1);
     }
     if (b < 0 || b > col) {
-        EPRINTF("Cannot Connect Initiator, y is out of the range");
+        EPRINTF("Cannot Connect Initiator, y is out of the range\n");
         exit(1);
     }
     if (c < 0 || c > Z) {
-        EPRINTF("Cannot Connect Initiator, z is out of the range");
+        EPRINTF("Cannot Connect Initiator, z is out of the range\n");
         exit(1);
     }
 
     Node<BUSWIDTH> *n = m_nodes[c*col*row+a*col+b];
     if(n->get_connect() == 1) {
-        EPRINTF("Node already connected");
+        EPRINTF("Node [%d,%d,%d] already connected\n",a,b,c);
         exit(1);
     }
 
@@ -60,21 +60,21 @@ void InterconnectNoc<BUSWIDTH>::connect_target(
                     uint16_t a, uint16_t b, uint16_t c)
 {
     if (a < 0 || a > row) {
-        EPRINTF("Cannot Connect Target, x are out of the range");
+        EPRINTF("Cannot Connect Target, x are out of the range\n");
         exit(1);
     }
     if (b < 0 || b > col) {
-        EPRINTF("Cannot Connect Target, y are out of the range");
+        EPRINTF("Cannot Connect Target, y are out of the range\n");
         exit(1);
     }
     if (c < 0 || c > Z) {
-        EPRINTF("Cannot Connect Target, z is out of the range");
+        EPRINTF("Cannot Connect Target, z is out of the range\n");
         exit(1);
     }
 
     Node<BUSWIDTH> *n = m_nodes[c*col*row+a*col+b];
     if(n->get_connect() == 1) {
-        EPRINTF("Node already connected");
+        EPRINTF("Node [%d,%d,%d] already connected\n",a,b,c);
         exit(1);
     }
     n->set_connect(1);
