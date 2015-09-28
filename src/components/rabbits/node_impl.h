@@ -25,7 +25,7 @@
 
 
 #define ROUTING_3D z_first_routing //xy_first_routing
-#define ROUTING_2D y_first_routing //x_first_routing
+#define ROUTING_2D x_first_routing //y_first_routing
 
 
 #define CONC_(A,B) A ## B
@@ -272,13 +272,13 @@ int Node<BUSWIDTH>::x_first_routing(tlm::tlm_generic_payload& trans,
     if (this->type == TORUS) {
         d_x = p_inter->get_X()/2;
         d_y = p_inter->get_Y()/2;
-        if ( (diff_x > 0 && diff_x < d_x) || (diff_x < 0 && diff_x <= -d_x) )
+        if ( (diff_x > 0 && diff_x <= d_x) || (diff_x < 0 && diff_x < -d_x) )
             (*m_initiators[2])->b_transport(trans, delay);
-        else if ( (diff_x > 0 && diff_x >= d_x) || (diff_x < 0 && diff_x > -d_x) )
+        else if ( (diff_x > 0 && diff_x > d_x) || (diff_x < 0 && diff_x >= -d_x) )
             (*m_initiators[0])->b_transport(trans, delay);
-        else if ( (diff_y > 0 && diff_y < d_y) || (diff_y < 0 && diff_y <= -d_y) )
+        else if ( (diff_y > 0 && diff_y <= d_y) || (diff_y < 0 && diff_y < -d_y) )
             (*m_initiators[1])->b_transport(trans, delay);
-        else if ( (diff_y > 0 && diff_y >= d_y) || (diff_y < 0 && diff_y > -d_y) )
+        else if ( (diff_y > 0 && diff_y > d_y) || (diff_y < 0 && diff_y >= -d_y) )
             (*m_initiators[3])->b_transport(trans, delay);
         else
             return 0;
@@ -308,13 +308,13 @@ int Node<BUSWIDTH>::y_first_routing(tlm::tlm_generic_payload& trans,
     if (this->type == TORUS) {
         d_x = p_inter->get_X()/2;
         d_y = p_inter->get_Y()/2;
-        if ( (diff_y > 0 && diff_y < d_y) || (diff_y < 0 && diff_y <= -d_y) )
+        if ( (diff_y > 0 && diff_y <= d_y) || (diff_y < 0 && diff_y < -d_y) )
             (*m_initiators[1])->b_transport(trans, delay);
-        else if ( (diff_y > 0 && diff_y >= d_y) || (diff_y < 0 && diff_y > -d_y) )
+        else if ( (diff_y > 0 && diff_y > d_y) || (diff_y < 0 && diff_y >= -d_y) )
             (*m_initiators[3])->b_transport(trans, delay);
-	else if ( (diff_x > 0 && diff_x < d_x) || (diff_x < 0 && diff_x <= -d_x) )
+	else if ( (diff_x > 0 && diff_x <= d_x) || (diff_x < 0 && diff_x < -d_x) )
             (*m_initiators[2])->b_transport(trans, delay);
-        else if ( (diff_x > 0 && diff_x >= d_x) || (diff_x < 0 && diff_x > -d_x) )
+        else if ( (diff_x > 0 && diff_x > d_x) || (diff_x < 0 && diff_x >= -d_x) )
             (*m_initiators[0])->b_transport(trans, delay);
         else
             return 0;

@@ -28,22 +28,22 @@ void InterconnectNoc<BUSWIDTH>::connect_initiator(
                     tlm::tlm_initiator_socket<BUSWIDTH> *initiator,
                     uint16_t a, uint16_t b, uint16_t c)
 {
-    if (a < 0 || a > col) {
+    if (a < 0 || a > row) {
         EPRINTF("Cannot Connect Initiator, x is out of the range\n");
         exit(1);
     }
-    if (b < 0 || b > row) {
-        EPRINTF("Cannot Connect Initiator, y is out of the range");
+    if (b < 0 || b > col) {
+        EPRINTF("Cannot Connect Initiator, y is out of the range\n");
         exit(1);
     }
     if (c < 0 || c > Z) {
-        EPRINTF("Cannot Connect Initiator, z is out of the range");
+        EPRINTF("Cannot Connect Initiator, z is out of the range\n");
         exit(1);
     }
 
     Node<BUSWIDTH> *n = m_nodes[c*col*row+a*col+b];
     if(n->get_connect() == 1) {
-        EPRINTF("Node already connected");
+        EPRINTF("Node [%d,%d,%d] already connected\n",a,b,c);
         exit(1);
     }
 
@@ -59,22 +59,22 @@ void InterconnectNoc<BUSWIDTH>::connect_target(
                     uint64_t addr, uint64_t len,
                     uint16_t a, uint16_t b, uint16_t c)
 {
-    if (a < 0 || a > col) {
-        EPRINTF("Cannot Connect Target, x are out of the range");
+    if (a < 0 || a > row) {
+        EPRINTF("Cannot Connect Target, x are out of the range\n");
         exit(1);
     }
-    if (b < 0 || b > row) {
-        EPRINTF("Cannot Connect Target, y are out of the range");
+    if (b < 0 || b > col) {
+        EPRINTF("Cannot Connect Target, y are out of the range\n");
         exit(1);
     }
     if (c < 0 || c > Z) {
-        EPRINTF("Cannot Connect Target, z is out of the range");
+        EPRINTF("Cannot Connect Target, z is out of the range\n");
         exit(1);
     }
 
     Node<BUSWIDTH> *n = m_nodes[c*col*row+a*col+b];
     if(n->get_connect() == 1) {
-        EPRINTF("Node already connected");
+        EPRINTF("Node [%d,%d,%d] already connected\n",a,b,c);
         exit(1);
     }
     n->set_connect(1);
@@ -101,8 +101,8 @@ void InterconnectNoc<BUSWIDTH>::create_network(int type, uint16_t a, uint16_t b,
     char ch[10];
     Node<BUSWIDTH> *n;
 
-    col=a;
-    row=b;
+    row=a;
+    col=b;
     Z=h;
     n_type=type;
     //creating all the nodes
@@ -164,7 +164,7 @@ void InterconnectNoc<BUSWIDTH>::create_network(int type, uint16_t a, uint16_t b,
         } else {
             DPRINTF("Topologie : TORUS \n");
         }
-        DPRINTF("[X,Y] = [%d,%d]\n",col,row);
+        DPRINTF("[X,Y] = [%d,%d]\n",row,col);
     } else {
         DPRINTF("3D NoC Created\n");
         if (n_type==1) {
@@ -172,7 +172,7 @@ void InterconnectNoc<BUSWIDTH>::create_network(int type, uint16_t a, uint16_t b,
         } else {
             DPRINTF("Topologie : TORUS \n");
         }
-        DPRINTF("[X,Y,Z] = [%d,%d,%d]\n",col,row,Z);
+        DPRINTF("[X,Y,Z] = [%d,%d,%d]\n",row,col,Z);
     }
 }
 

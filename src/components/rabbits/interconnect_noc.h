@@ -80,11 +80,11 @@ public:
     }
     uint16_t get_X(void)
     {
-        return col;
+        return row;
     }
     uint16_t get_Y(void)
     {
-        return row;
+        return col;
     }
 
     int decode_address_i(sc_dt::uint64 addr, sc_dt::uint64& addr_offset)
