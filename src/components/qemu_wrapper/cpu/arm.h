@@ -17,6 +17,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#ifndef _QEMU_WRAPPER_QEMU_CPU_ARM_H
+#define _QEMU_WRAPPER_QEMU_CPU_ARM_H
+
 #include <string>
 
 #include "qemu_cpu.h"
