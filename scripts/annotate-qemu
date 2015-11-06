@@ -1,0 +1,25 @@
+#!/bin/bash
+
+QEMU_SRCS_DIR
+#QEMU_SRCS_DIR=../iss/sc-qemu/
+
+# Insert annotation on ARM architecture
+# We are intrested by the functions disas_xx_insn (xx = arm,dsp,vfp,vfp_v8,thumb,neon_ls,neon_data, ..)
+# Actually we only add annotation to the disas_arm_insn
+
+XX=arm
+
+ANNOTATE_FUNCTION=rabbits_annotate_${XX}_insn
+
+RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "void disas_${XX}_insn")
+FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+
+P=$(sed -n ${NUM_LINE}p ${FILE_NAME} | rev | cut -d "," -f1 | rev)
+NAME_P=$(echo ${P} | rev | cut -d " " -f1 | rev)
+
+NUM_LINE=`expr "${NUM_LINE}" + 2`
+sed "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(${P};\n\
+    ${ANNOTATE_FUNCTION}(${NAME_P};" $FILE_NAME > ${XX}_disas
+
+mv ${XX}_disas ${FILE_NAME}

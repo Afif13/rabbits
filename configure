@@ -176,6 +176,9 @@ log_info "Enabled iss: $(list_iss <<<"$plist_array")"
 source "$SRCS_DIR"/scripts/config-qemu
 check_yes $qemu_found "QEMU not found or configure failed. Check log"
 
+# here we have the qemu files, so we can do the annotation
+source "$SRCS_DIR"/scripts/annotate-qemu
+
 # Compilation variables
 repos_cflags=$(generate_repos_cflags <<<"$plist_array")
 CFLAGS="$debug_flags $opt_flags $repos_cflags -I$BUILD_DIR $systemc_cflags $extra_cflags -DSC_INCLUDE_DYNAMIC_PROCESSES"
