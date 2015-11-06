@@ -1,6 +1,5 @@
 #!/bin/bash
 
-QEMU_SRCS_DIR
 #QEMU_SRCS_DIR=../iss/sc-qemu/
 
 # Insert annotation on ARM architecture
