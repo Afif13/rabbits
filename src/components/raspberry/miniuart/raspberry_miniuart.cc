@@ -21,8 +21,10 @@
 #include <cstdlib>
 #include <csignal>
 #include <unistd.h>
+#if 0 // Removing xterm dependency
 #include <sys/types.h>
 #include <sys/wait.h>
+#endif
 #include "raspberry_miniuart.h"
 
 #define MODNAME "rpi-miniuart"
@@ -30,6 +32,7 @@
 
 #define TTY_INT_READ        1
 
+#if 0 // Removing xterm dependency
 static int s_pid_tty[256];
 static int s_nb_tty = 0;
 
@@ -92,6 +95,7 @@ void raspberry_miniuart::read_thread()
         }
     }
 }
+#endif
 
 void raspberry_miniuart::raspberry_miniuart_init_register(void)
 {
@@ -106,12 +110,17 @@ void raspberry_miniuart::raspberry_miniuart_init_register(void)
 raspberry_miniuart::raspberry_miniuart(sc_module_name _name) :
         Slave(_name)
 {
+    pout = 1; // stdout
+
+#if 0 // Removing xterm dependency
     int ppout[2], ppin[2];
     char spipeout[16], spipein[16];
     char logfile[strlen((const char *) _name) + 5];
+#endif
 
     raspberry_miniuart_init_register();
 
+#if 0 // Removing xterm dependency
     signal(SIGHUP, sig_hup);
     atexit(close_ttys);
 
@@ -147,14 +156,18 @@ raspberry_miniuart::raspberry_miniuart(sc_module_name _name) :
 
     SC_THREAD(read_thread);
     SC_THREAD(irq_update_thread);
+#endif
 }
 
 raspberry_miniuart::~raspberry_miniuart()
 {
+#if 0 // Removing xterm dependency
     close(pout);
     close_ttys();
+#endif
 }
 
+#if 0 // Removing xterm dependency
 //void raspberry_miniuart::irq_update ()
 void raspberry_miniuart::irq_update_thread()
 {
@@ -171,6 +184,7 @@ void raspberry_miniuart::irq_update_thread()
         irq_line = (flags != 0);
     }
 }
+#endif
 
 void raspberry_miniuart::cb_write(uint32_t ofs, uint8_t be, uint8_t *data,
         bool &bErr)
