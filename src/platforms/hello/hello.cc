@@ -26,6 +26,23 @@
 
 #define RAMSIZE 1024
 
+class simple_uart : public Slave {
+public:
+    SC_HAS_PROCESS(simple_uart);
+    simple_uart(sc_module_name _name) : Slave(_name) {
+
+    }
+    ~simple_uart() {
+
+    }
+public:
+    void bus_cb_write(uint64_t addr, uint8_t *data, unsigned int len, bool &bErr) {
+        fprintf(stdout, "%c", *data);
+        fflush(stdout);
+        bErr = false;
+    }
+};
+
 Hello::Hello(sc_module_name _name) :
         Platform(_name)
 {
@@ -36,6 +53,7 @@ Hello::Hello(sc_module_name _name) :
     m_dbg_initiator = new DebugInitiator("dbg-initiator");
 
     connect_target(m_ram, 0x00000000ul, RAMSIZE);
+    connect_target(new simple_uart("simple-uart"), 0x10000000ul, 0x1000);
 
     //masters
 
