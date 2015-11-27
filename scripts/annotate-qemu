@@ -1,6 +1,31 @@
 #!/bin/bash
 
+#QEMU_SRCS_DIR
 #QEMU_SRCS_DIR=../iss/sc-qemu/
+
+
+# Insert function in cpus.c to know when the CPU is changed
+# This happen in tcg_exec_all(void) within the for loop
+
+CPU_FUNCTION=rabbits_cpu_update
+
+# find the the function
+RES=$(grep -rn "${QEMU_SRCS_DIR}" --include=*.c -e "static void tcg_exec_all(void)" | tail -n 1)
+FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+
+# Search the loop
+NUM_LINE_ADD=`expr "${NUM_LINE}" + 20`
+NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "for" | cut -d ":" -f1)
+
+NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` #where to insert our call
+sed "${NUM_LINE}i\    extern void ${CPU_FUNCTION}();\n\
+    ${CPU_FUNCTION}();" $FILE_NAME > rabbits_file_update_cpu
+
+mv rabbits_file_update_cpu ${FILE_NAME}
+
+# ----------- End CPU update--------------
+
 
 # Insert annotation on ARM architecture
 # We are intrested by the functions disas_xx_insn (xx = arm,dsp,vfp,vfp_v8,thumb,neon_ls,neon_data, ..)
@@ -10,15 +35,21 @@ XX=arm
 
 ANNOTATE_FUNCTION=rabbits_annotate_${XX}_insn
 
-RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "void disas_${XX}_insn")
+# find the function
+RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "static void disas_${XX}_insn" | tail -n 1)
 FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
 NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
 
+#get the last parameter of the function (actually it's unisgned long insn )
 P=$(sed -n ${NUM_LINE}p ${FILE_NAME} | rev | cut -d "," -f1 | rev)
+#get only the parameter name
 NAME_P=$(echo ${P} | rev | cut -d " " -f1 | rev)
 
-NUM_LINE=`expr "${NUM_LINE}" + 2`
+NUM_LINE=`expr "${NUM_LINE}" + 2` #where to insert our call
 sed "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(${P};\n\
-    ${ANNOTATE_FUNCTION}(${NAME_P};" $FILE_NAME > ${XX}_disas
+    ${ANNOTATE_FUNCTION}(${NAME_P};" $FILE_NAME > rabbits_file_${XX}_disas
 
-mv ${XX}_disas ${FILE_NAME}
+mv rabbits_file_${XX}_disas ${FILE_NAME}
+
+
+# -------- End Annotation insertion ----------------

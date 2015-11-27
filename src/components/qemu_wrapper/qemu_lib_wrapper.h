@@ -1,20 +1,20 @@
 /*
- *  Copyright (c) 2015 Clement Deschamps and Luc Michel
+ *  This file is part of Rabbits
+ *  Copyright (C) 2015  Clement Deschamps and Luc Michel
  *
- *  This file is part of Rabbits.
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
  *
- *  Rabbits is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Rabbits is distributed in the hope that it will be useful,
+ *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with Rabbits.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
 #ifndef _QEMU_WAPPER_QEMU_LIB_WRAPPER_H
@@ -22,6 +22,7 @@
 
 #include <string>
 #include "rabbits-common.h"
+#include "qemu_annotation.h"
 
 struct qemu_import;
 struct qemu_context;
@@ -43,6 +44,7 @@ class qemu_lib_wrapper {
 private:
     qemu_import *m_qemu_import;
     qemu_context *m_qemu_ctx;
+    qemu_annotation *m_qemu_annotation;
     void *m_lib_hdl;
 
     qemu_io_callbacks *m_io_cb;
@@ -51,11 +53,13 @@ private:
     static uint32_t qemu_sc_read(void *opaque, uint32_t addr, uint32_t size);
     static void qemu_sc_write(void *opaque, uint32_t addr,
                               uint32_t val, uint32_t size);
+    static void qemu_sc_call_rabbits(void *opaque,int type,
+                              int cpu,unsigned long p1);
     static void char_dev_read(void *opaque, const uint8_t *data, int len);
 
 public:
     qemu_lib_wrapper(std::string lib_path);
-
+    ~qemu_lib_wrapper();
     void init(int num_cpu, std::string cpu_model);
 
     void map_io(uint32_t base, uint32_t size);

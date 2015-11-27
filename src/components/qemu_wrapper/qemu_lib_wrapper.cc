@@ -1,3 +1,22 @@
+/*
+ *  This file is part of Rabbits
+ *  Copyright (C) 2015  Clement Deschamps and Luc Michel
+ *
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 #include "qemu_lib_wrapper.h"
 
 #define MODNAME "qemu-lib-wrapper"
@@ -11,7 +30,7 @@ qemu_lib_wrapper::qemu_lib_wrapper(std::string lib_path)
 {
     m_qemu_ctx = NULL;
     m_qemu_import = NULL;
-
+    m_qemu_annotation = NULL;
     m_lib_hdl = dlopen(lib_path.c_str(), RTLD_NOW);
     if (!m_lib_hdl) {
         EPRINTF("Cannot load library %s: %s\n",
@@ -19,7 +38,11 @@ qemu_lib_wrapper::qemu_lib_wrapper(std::string lib_path)
         exit(1);
     }
 }
-
+qemu_lib_wrapper::~qemu_lib_wrapper()
+{
+    if(m_qemu_annotation)
+        delete m_qemu_annotation;
+}
 /* ----------------------------
  * Callbacks from sc-qemu libs
  * ---------------------------- */
@@ -37,6 +60,24 @@ void qemu_lib_wrapper::qemu_sc_write(void *opaque, uint32_t addr,
     qemu_lib_wrapper *w = (qemu_lib_wrapper *) opaque;
 
     w->m_io_cb->qemu_io_write(addr, val, size);
+}
+
+void qemu_lib_wrapper::qemu_sc_call_rabbits(void *opaque,int type,
+                                            int cpu, unsigned long p1)
+{
+    qemu_lib_wrapper *w = (qemu_lib_wrapper *) opaque;
+    switch(type) {
+        case 0: //Info
+            w->m_qemu_annotation->info();
+            break;
+        case 1: //Annotation
+            w->m_qemu_annotation->update_cpu_cycles(p1,cpu);
+            break;
+        case 2: //I Cache
+            break;
+        case 3: //D Cache
+            break;
+    }
 }
 /* ---------------------------- */
 
@@ -58,6 +99,7 @@ void qemu_lib_wrapper::init(int num_cpu, std::string cpu_model)
 
     s.sc_import.write = qemu_sc_write;
     s.sc_import.read = qemu_sc_read;
+    s.sc_import.call_rabbits = qemu_sc_call_rabbits;
 
     s.q_import = m_qemu_import;
     s.cpu_model = cpu_model.c_str();
@@ -65,6 +107,8 @@ void qemu_lib_wrapper::init(int num_cpu, std::string cpu_model)
     s.opaque = this;
 
     m_qemu_ctx = qemu_init(&s);
+
+    m_qemu_annotation = new qemu_annotation("BETA_ANNOTATION",num_cpu);
 }
 
 void qemu_lib_wrapper::map_io(uint32_t base, uint32_t size)
