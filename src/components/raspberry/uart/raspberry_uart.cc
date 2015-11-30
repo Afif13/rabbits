@@ -1,28 +1,30 @@
 /*
- *  Copyright (c) 2010 TIMA Laboratory
+ *  This file is part of Rabbits
+ *  Copyright (C) 2015  Clement Deschamps and Luc Michel
  *
- *  This file is part of Rabbits.
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
  *
- *  Rabbits is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Rabbits is distributed in the hope that it will be useful,
+ *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with Rabbits.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
 #include <cstdio>
 #include <cstdlib>
 #include <csignal>
 #include <unistd.h>
+#if 0 // Removing xterm dependency
 #include <sys/types.h>
 #include <sys/wait.h>
+#endif
 #include "raspberry_uart.h"
 
 #if 0
@@ -34,6 +36,7 @@
 
 #define TTY_INT_READ        1
 
+#if 0 // Removing xterm dependency
 static int s_pid_tty[256];
 static int s_nb_tty = 0;
 
@@ -98,6 +101,7 @@ void raspberry_uart::read_thread()
         }
     }
 }
+#endif
 
 void raspberry_uart::raspberry_uart_init_register(void)
 {
@@ -107,12 +111,17 @@ void raspberry_uart::raspberry_uart_init_register(void)
 raspberry_uart::raspberry_uart(sc_module_name _name) :
         Slave(_name)
 {
+    pout = 1; // stdout
+
+#if 0 // Removing xterm dependency
     int ppout[2], ppin[2];
     char spipeout[16], spipein[16];
     char logfile[strlen((const char *) _name) + 5];
+#endif
 
     raspberry_uart_init_register();
 
+#if 0 // Removing xterm dependency
     signal(SIGHUP, sig_hup);
     atexit(close_ttys);
 
@@ -148,14 +157,18 @@ raspberry_uart::raspberry_uart(sc_module_name _name) :
 
     SC_THREAD(read_thread);
     SC_THREAD(irq_update_thread);
+#endif
 }
 
 raspberry_uart::~raspberry_uart()
 {
+#if 0 // Removing xterm dependency
     close(pout);
     close_ttys();
+#endif
 }
 
+#if 0 // Removing xterm dependency
 void raspberry_uart::irq_update_thread()
 {
     unsigned long flags;
@@ -171,6 +184,7 @@ void raspberry_uart::irq_update_thread()
         irq_line = (flags != 0);
     }
 }
+#endif
 
 void raspberry_uart::bus_cb_write(uint64_t ofs, uint8_t *data,
 			    unsigned int len, bool &bErr)
