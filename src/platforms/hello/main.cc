@@ -22,35 +22,18 @@
 
 #include <systemc.h>
 
-#include "system_init.h"
-#include "raspberry.h"
+#include "hello.h"
 
 #include "ui/ui.h"
 #include "utils/simu.h"
 
 int sc_main(int argc, char **argv)
 {
-    init_struct
-    config = {
-        .kernel_filename = NULL,
-        .dtb_filename = NULL,
-        .initrd_filename = NULL,
-        .kernel_cmdline = NULL,
-        .gdb_port = 0
-    };
-
     simu_manager simu;
 
-    parse_cmdline(argc, argv, &config);
-    if (check_init(&config) != 0) {
-        fprintf(stderr, "Cannot parse command line arguments, exiting\n");
-        exit(1);
-    }
-
-    Raspberry fram("raspberry", &config);
-
-    ui::start_ui();
+    Hello hello("hello");
 
     simu.start();
+
     return 0;
 }

@@ -17,40 +17,43 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include <components/memory/memory.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include <systemc.h>
 
-#include "system_init.h"
-#include "raspberry.h"
+#include "components/rabbits/interconnect.h"
+#include "components/rabbits/debug/debug_initiator.h"
 
-#include "ui/ui.h"
-#include "utils/simu.h"
+#include "components/qemu_wrapper/qemu_wrapper.h"
+#include "components/qemu_wrapper/cpu/arm.h"
 
-int sc_main(int argc, char **argv)
+#include "components/rabbits/platform.h"
+
+class Hello: public Platform
 {
-    init_struct
-    config = {
-        .kernel_filename = NULL,
-        .dtb_filename = NULL,
-        .initrd_filename = NULL,
-        .kernel_cmdline = NULL,
-        .gdb_port = 0
-    };
+private:
+    /*
+     * Components of the Raspberry Platform
+     */
+    memory *m_ram;
+    qemu_wrapper<qemu_cpu_arm> *m_qemu;
 
-    simu_manager simu;
+    DebugInitiator *m_dbg_initiator;
 
-    parse_cmdline(argc, argv, &config);
-    if (check_init(&config) != 0) {
-        fprintf(stderr, "Cannot parse command line arguments, exiting\n");
-        exit(1);
-    }
+    /*
+     * ARM IRQ wiring
+     */
+    sc_signal<bool> m_irq_line;
 
-    Raspberry fram("raspberry", &config);
+    void end_of_elaboration();
+    void load_helloworld();
 
-    ui::start_ui();
+public:
+    Hello(sc_module_name _name);
 
-    simu.start();
-    return 0;
-}
+};
