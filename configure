@@ -64,6 +64,7 @@ Advanced options (experts only):
   --enable-debug                  enable common debug build options
   --enable-werror                 enable -Werror compile flag
   --enable-sdl-ui                 enable the SDL user interface
+  --enable-annotation             enable the insertion of Rabbits-SystemC call for time and cache management
   --with-systemc=PATH             specify the SystemC prefix
   --with-scml=PATH                specify the SCML2 prefix
   --with-qemu-src=PATH            specify the QEMU sources path [$QEMU_SRCS_DIR]
@@ -100,6 +101,13 @@ parse_cmd() {
             CONFIG_SDL_UI="n"
             ;;
 
+          --enable-annotation)
+            CONFIG_ANNOTATION="y"
+            ;;
+          --disable-annotation)
+            CONFIG_ANNOTATION="n"
+            ;;
+
           --enable-werror)
             debug_flags="-Werror $debug_flags"
             ;;
@@ -131,6 +139,7 @@ SRCS_DIR=$(dirname "$0")
 SRCS_DIR=$(cd "$SRCS_DIR"; pwd)
 PLATFORM_CONF_DIR=platform_configs
 CONFIG_SDL_UI="y"
+CONFIG_ANNOTATION="n"
 QEMU_REL_DIR=iss/sc-qemu
 QEMU_SRCS_DIR="$SRCS_DIR"/"$QEMU_REL_DIR"
 QEMU_BUILD_DIR="$BUILD_DIR"/"$QEMU_REL_DIR"
@@ -191,8 +200,10 @@ log_info "Enabled iss: $(list_iss <<<"$plist_array")"
 source "$SRCS_DIR"/scripts/config-qemu
 check_yes $qemu_found "QEMU not found or configure failed. Check log"
 
-# here we have the qemu files, so we can do the annotation
-source "$SRCS_DIR"/scripts/annotate-qemu
+# here we have the qemu files, so we can add the annotation
+if [ $CONFIG_ANNOTATION = "y" ];then
+    source "$SRCS_DIR"/scripts/annotate-qemu
+fi
 
 # Compilation variables
 repos_cflags=$(generate_repos_cflags <<<"$plist_array")

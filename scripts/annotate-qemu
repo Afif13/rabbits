@@ -14,7 +14,7 @@ RES=$(grep -rn "${QEMU_SRCS_DIR}" --include=*.c -e "static void tcg_exec_all(voi
 FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
 NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
 
-# Search the loop
+# Search the for loop
 NUM_LINE_ADD=`expr "${NUM_LINE}" + 20`
 NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "for" | cut -d ":" -f1)
 
@@ -27,9 +27,13 @@ mv rabbits_file_update_cpu ${FILE_NAME}
 # ----------- End CPU update--------------
 
 
-# Insert annotation on ARM architecture
-# We are intrested by the functions disas_xx_insn (xx = arm,dsp,vfp,vfp_v8,thumb,neon_ls,neon_data, ..)
-# Actually we only add annotation to the disas_arm_insn
+# Insert annotation in ARM architecture
+# We are intrested by the functions disas_xx_insn (xx = arm or thumb)
+#   This two functions are called within the while loop of gen_intermediate_code
+#   After that we do our own decoding to check the type of instruction and see if we add extra cycle
+
+
+# Add annotation to the disas_arm_insn
 
 XX=arm
 
@@ -40,16 +44,41 @@ RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "static void disas
 FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
 NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
 
-#get the last parameter of the function (actually it's unisgned long insn )
+#get the last parameter of the function
 P=$(sed -n ${NUM_LINE}p ${FILE_NAME} | rev | cut -d "," -f1 | rev)
 #get only the parameter name
 NAME_P=$(echo ${P} | rev | cut -d " " -f1 | rev)
 
 NUM_LINE=`expr "${NUM_LINE}" + 2` #where to insert our call
-sed "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(${P};\n\
+sed "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
     ${ANNOTATE_FUNCTION}(${NAME_P};" $FILE_NAME > rabbits_file_${XX}_disas
 
 mv rabbits_file_${XX}_disas ${FILE_NAME}
 
 
-# -------- End Annotation insertion ----------------
+# Add annotation to the disas_thumb_insn
+
+XX=thumb
+
+ANNOTATE_FUNCTION=rabbits_annotate_${XX}_insn
+
+# find the function
+RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "static void disas_${XX}_insn" | tail -n 1)
+FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+
+
+# Search the for the insn parametre.
+#TODO : Try to find a non complicated way to make this !
+NUM_LINE_ADD=`expr "${NUM_LINE}" + 20`
+NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "insn = " | cut -d ":" -f1)
+
+
+NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` #where to insert our call
+sed "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
+    ${ANNOTATE_FUNCTION}(insn);" $FILE_NAME > rabbits_file_${XX}_disas
+
+mv rabbits_file_${XX}_disas ${FILE_NAME}
+
+
+# -------- End Annotation insertion in ARM ----------------
