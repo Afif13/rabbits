@@ -138,14 +138,14 @@ QEMU_CLONE_URL=
 SC_QEMU_BRANCH="sc-qemu"
 CONFIG_LOG="$BUILD_DIR"/"$CONFIG_LOG"
 QEMU_CONFIG_OPTIONS="--disable-debug-tcg --disable-sparse --disable-sdl
-                     --disable-gtk --disable-vnc --disable-xen --disable-brlapi --disable-vnc-tls
+                     --disable-gtk --disable-vnc --disable-xen --disable-brlapi
                      --disable-vnc-sasl --disable-vnc-jpeg --disable-vnc-png --disable-curses
                      --disable-curl --disable-bluez --disable-slirp --disable-kvm --disable-user
-                     --disable-linux-user --disable-bsd-user --disable-guest-base --disable-pie
+                     --disable-linux-user --disable-bsd-user --disable-pie
                      --disable-uuid --disable-linux-aio --disable-attr --disable-blobs
-                     --disable-docs --disable-vhost-net --disable-spice --disable-smartcard-nss
+                     --disable-docs --disable-vhost-net --disable-spice --disable-smartcard
                      --disable-usb-redir --disable-guest-agent --disable-cap-ng --disable-libiscsi
-                     --disable-libusb --disable-quorum --audio-drv-list= --disable-werror"
+                     --disable-libusb --audio-drv-list= --disable-werror"
 
 source "$SRCS_DIR"/scripts/config-utils
 
