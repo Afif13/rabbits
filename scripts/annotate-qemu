@@ -4,81 +4,135 @@
 #QEMU_SRCS_DIR=../iss/sc-qemu/
 
 
-# Insert function in cpus.c to know when the CPU is changed
-# This happen in tcg_exec_all(void) within the for loop
+# This will help us retrieve where we made the insertion
+L_S="/* Annotation made by Rabbits */" # Label Start
+L_E="/* -------------------------- */" # Label End
 
-CPU_FUNCTION=rabbits_cpu_update
+# This is the suffix for backup files in case the inserion goes wrong
+B_F=".rabbits_annotation"
 
-# find the the function
-RES=$(grep -rn "${QEMU_SRCS_DIR}" --include=*.c -e "static void tcg_exec_all(void)" | tail -n 1)
-FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
-NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+# ----------- Start CPU update -------------- #
 
-# Search the for loop
-NUM_LINE_ADD=`expr "${NUM_LINE}" + 20`
-NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "for" | cut -d ":" -f1)
+#   Insert function in cpus.c to know when the CPU is changed
+#   This happen in tcg_exec_all(void) within the for loop
 
-NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` #where to insert our call
-sed "${NUM_LINE}i\    extern void ${CPU_FUNCTION}();\n\
-    ${CPU_FUNCTION}();" $FILE_NAME > rabbits_file_update_cpu
+    CPU_FUNCTION=rabbits_cpu_update
 
-mv rabbits_file_update_cpu ${FILE_NAME}
+    # find the the function
+    RES=$(grep -rn "${QEMU_SRCS_DIR}" --include=*.c -e "static void tcg_exec_all(void)" | tail -n 1)
+    FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+    NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
 
-# ----------- End CPU update--------------
+    # Search the for loop
+    NUM_LINE_ADD=`expr "${NUM_LINE}" + 20`
+    NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "for" | cut -d ":" -f1)
+
+    NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` # Where to insert our call
+    sed -i$B_F "${NUM_LINE}i\    extern void ${CPU_FUNCTION}();\n\
+        ${CPU_FUNCTION}();" $FILE_NAME
+
+# ----------- End CPU update -------------- #
 
 
-# Insert annotation in ARM architecture
-# We are intrested by the functions disas_xx_insn (xx = arm or thumb)
+# -------- Insert annotation in ARM architecture -------- #
+
+#   We are intrested by the functions disas_xx_insn (xx = arm or thumb)
 #   This two functions are called within the while loop of gen_intermediate_code
 #   After that we do our own decoding to check the type of instruction and see if we add extra cycle
 
 
-# Add annotation to the disas_arm_insn
+    # Add annotation to the disas_arm_insn
 
-XX=arm
+    XX=arm
 
-ANNOTATE_FUNCTION=rabbits_annotate_${XX}_insn
+    ANNOTATE_FUNCTION=rabbits_annotate_${XX}_insn
 
-# find the function
-RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "static void disas_${XX}_insn" | tail -n 1)
-FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
-NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+    # find the function
+    RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "static void disas_${XX}_insn" | tail -n 1)
+    FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+    NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
 
-#get the last parameter of the function
-P=$(sed -n ${NUM_LINE}p ${FILE_NAME} | rev | cut -d "," -f1 | rev)
-#get only the parameter name
-NAME_P=$(echo ${P} | rev | cut -d " " -f1 | rev)
+    #get the last argument of the function
+    P=$(sed -n ${NUM_LINE}p ${FILE_NAME} | rev | cut -d "," -f1 | rev)
+    #get only the parameter name
+    NAME_P=$(echo ${P} | rev | cut -d " " -f1 | rev)
 
-NUM_LINE=`expr "${NUM_LINE}" + 2` #where to insert our call
-sed "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
-    ${ANNOTATE_FUNCTION}(${NAME_P};" $FILE_NAME > rabbits_file_${XX}_disas
+    NUM_LINE=`expr "${NUM_LINE}" + 2` # Where to insert our call
+    sed -i$B_F "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
+    ${ANNOTATE_FUNCTION}(${NAME_P};" $FILE_NAME
 
-mv rabbits_file_${XX}_disas ${FILE_NAME}
+    # Add annotation to the disas_thumb_insn
 
+    XX=thumb
 
-# Add annotation to the disas_thumb_insn
+    ANNOTATE_FUNCTION=rabbits_annotate_${XX}_insn
 
-XX=thumb
-
-ANNOTATE_FUNCTION=rabbits_annotate_${XX}_insn
-
-# find the function
-RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "static void disas_${XX}_insn" | tail -n 1)
-FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
-NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+    # find the function
+    RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/target-arm" -e "static void disas_${XX}_insn" | tail -n 1)
+    FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+    NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
 
 
-# Search the for the insn parametre.
-#TODO : Try to find a non complicated way to make this !
-NUM_LINE_ADD=`expr "${NUM_LINE}" + 20`
-NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "insn = " | cut -d ":" -f1)
+    # Search the for the insn argument.
+    # TODO : Try to find a non complicated way to make this !
+    NUM_LINE_ADD=`expr "${NUM_LINE}" + 20`
+    NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "insn = " | cut -d ":" -f1)
 
 
-NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` #where to insert our call
-sed "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
-    ${ANNOTATE_FUNCTION}(insn);" $FILE_NAME > rabbits_file_${XX}_disas
+    NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` #where to insert our call
+    sed -i$B_F "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
+    ${ANNOTATE_FUNCTION}(insn);" $FILE_NAME
 
-mv rabbits_file_${XX}_disas ${FILE_NAME}
+# -------- End Annotation insertion in ARM --------------- #
 
 
-# -------- End Annotation insertion in ARM ----------------
+# -------- Insert annotation in XX architecture -------- #
+
+
+# -------- End Annotation insertion in XX --------------- #
+
+
+
+# ------ Insert Icache call in all the architecture ----- #
+
+#   We are intrested by the function cpu_ldx_code (x = {sign}{size}, refer to cpu_ldst.h)
+#   This function is called within the generate_intermediate_code
+#   to load the instruction from the current pc. We do our insertion after this call.
+#   TODO : try to find a better way to get the pc
+
+#   Since we are going to do a function call into the generated code we are obliged to
+#   work with the helper
+
+ICACHE_HELPER=icache_call
+ICACHE_FUNCTION=rabbits_${ICACHE_HELPER}
+
+    # Add icache call for ARM
+
+    ARCH=arm
+
+    # The header of the helper function
+    FILE_NAME=$(find "${QEMU_SRCS_DIR}" -name "helper.h" | grep -e "${ARCH}")
+    sed -i$B_F "1i\DEF_HELPER_1(${ICACHE_HELPER},void,i32)\n" $FILE_NAME
+
+    #mv rabbits_file_${ARCH}_icache ${FILE_NAME}
+
+    # The implementation of the helper function
+    FILE_NAME=$(find "${QEMU_SRCS_DIR}" -name "op_helper.c" | grep -e "${ARCH}")
+    echo -n -e "\nvoid HELPER($ICACHE_HELPER)(uint32_t addr)\n{
+    extern void $ICACHE_FUNCTION(unsigned long addr);
+    $ICACHE_FUNCTION(addr);\n}" >> ${FILE_NAME}
+
+    # find the call of cpu_ldx_code (here we search for arm_ldx_code)
+    # TODO: try to find a more generic manner that can fit all the architecture
+    # This a very bad hard coded insertion !! we need to find a better way
+    FILE_NAME="${QEMU_SRCS_DIR}/target-arm/translate.c"
+    RES=$(grep  -n "${FILE_NAME}" -e "arm_ldl_code(" | tail -n 1)
+    NUM_LINE=$(echo ${RES} | cut -d ":" -f1)
+    ARG=$(echo ${RES} | cut -d "," -f2) # We get the second argument which is the PC
+    TMP_ARG=pc_tmp_rabbits # A temporary TCG variable to use
+
+    NUM_LINE=`expr "${NUM_LINE}" + 1` # Where to insert our call
+    sed -i$B_F "${NUM_LINE}i\    TCGv    ${TMP_ARG} = tcg_temp_new();\n\
+    tcg_gen_movi_i32(${TMP_ARG},(uint32_t)${ARG});\n\
+    gen_helper_${ICACHE_HELPER}(${TMP_ARG});\n\
+    tcg_temp_free (${TMP_ARG});" $FILE_NAME

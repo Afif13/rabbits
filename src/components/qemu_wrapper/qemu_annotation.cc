@@ -24,14 +24,14 @@
 #include "utils/utils.h"
 
 
-qemu_annotation::qemu_annotation(sc_module_name name, int cpu)
+qemu_annotation::qemu_annotation(sc_module_name name, int nb_cpu)
                 :sc_module(name)
 {
     int i;
-    num_cpu = cpu;
-    nb_cycles = (unsigned long *)malloc(num_cpu*sizeof(unsigned long));
-    cumulate_nb_cycles = (unsigned long *)malloc(num_cpu*sizeof(unsigned long));
-    for(i=0;i<num_cpu;i++) {
+    num_cpu = nb_cpu;
+    nb_cycles = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
+    cumulate_nb_cycles = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
+    for(i = 0; i < num_cpu; i++) {
         nb_cycles[i] = 0;
         cumulate_nb_cycles[i] = 0;
     }
@@ -41,8 +41,6 @@ qemu_annotation::~qemu_annotation()
 {
     int i;
     if(cumulate_nb_cycles) {
-        for(i=0;i<num_cpu;i++)
-            DPRINTF("NB Cycles for CPU[%d] = %lu\n",i,cumulate_nb_cycles[i]);
         delete cumulate_nb_cycles;
     }
     if(nb_cycles)
@@ -53,26 +51,26 @@ void qemu_annotation::info()
 {
     int i;
     if(cumulate_nb_cycles) {
-        for(i=0;i<num_cpu;i++) {
+        for(i = 0; i < num_cpu; i++) {
            DPRINTF("NB Cycles for CPU[%d] = %lu\n",i,cumulate_nb_cycles[i]);
            DPRINTF("NB Cycles remaining for CPU[%d] = %lu\n",i,nb_cycles[i]);
         }
-        DPRINTF("TIME = %lu\n",sc_time_stamp ().value ());
+        DPRINTF("TIME = %lu ns\n",sc_time_stamp().value ()/1000);
     }
 }
 
-void qemu_annotation::update_cpu_cycles(unsigned long cycles, int current_cpu)
+void qemu_annotation::update_cpu_cycles(int cpu, unsigned long cycles)
 {
-    cumulate_nb_cycles[current_cpu] += cycles;
-    nb_cycles[current_cpu] += cycles;
-    if(nb_cycles[current_cpu] > MAX_CYCLES)
-        consume_cpu_cycles(current_cpu);
+    cumulate_nb_cycles[cpu] += cycles;
+    nb_cycles[cpu] += cycles;
+    if(nb_cycles[cpu] > MAX_CYCLES)
+        consume_cpu_cycles(cpu);
 }
-void qemu_annotation::consume_cpu_cycles(int current_cpu)
+void qemu_annotation::consume_cpu_cycles(int cpu)
 {
 //    DPRINTF("Consumming %lu for CPU %d\n",nb_cycles[current_cpu],current_cpu);
     //TODO : calculate the time we should really wait
-    wait(nb_cycles[current_cpu],SC_NS);
-    nb_cycles[current_cpu] = 0;
+    wait(nb_cycles[cpu],SC_NS);
+    nb_cycles[cpu] = 0;
 
 }

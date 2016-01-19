@@ -23,11 +23,15 @@
 #include <string>
 #include "rabbits-common.h"
 #include "qemu_annotation.h"
+#include "qemu_icache.h"
 
 struct qemu_import;
 struct qemu_context;
 struct sc_qemu_qdev;
 struct sc_qemu_char_dev;
+
+template <class t_cpu>
+class qemu_wrapper;
 
 class qemu_io_callbacks {
 public:
@@ -44,7 +48,10 @@ class qemu_lib_wrapper {
 private:
     qemu_import *m_qemu_import;
     qemu_context *m_qemu_ctx;
+
     qemu_annotation *m_qemu_annotation;
+    qemu_icache *m_qemu_icache;
+
     void *m_lib_hdl;
 
     qemu_io_callbacks *m_io_cb;
@@ -53,7 +60,7 @@ private:
     static uint32_t qemu_sc_read(void *opaque, uint32_t addr, uint32_t size);
     static void qemu_sc_write(void *opaque, uint32_t addr,
                               uint32_t val, uint32_t size);
-    static void qemu_sc_call_rabbits(void *opaque,int type,
+    static uint32_t qemu_sc_call_rabbits(void *opaque,int type,
                               int cpu,unsigned long p1);
     static void char_dev_read(void *opaque, const uint8_t *data, int len);
 
