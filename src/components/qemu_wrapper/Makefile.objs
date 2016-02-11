@@ -1,6 +1,7 @@
 obj-y += qemu_lib_wrapper.o
 obj-y += qemu_annotation.o
 obj-y += qemu_icache.o
+obj-y += qemu_dcache.o
 obj-y += cpu/ dev/
 
 # Path to <sc_qemu.h> in QEMU subdir

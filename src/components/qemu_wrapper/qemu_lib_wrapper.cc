@@ -33,6 +33,7 @@ qemu_lib_wrapper::qemu_lib_wrapper(std::string lib_path)
 
     m_qemu_annotation = NULL;
     m_qemu_icache = NULL;
+    m_qemu_dcache = NULL;
 
     m_lib_hdl = dlopen(lib_path.c_str(), RTLD_NOW);
     if (!m_lib_hdl) {
@@ -66,22 +67,72 @@ void qemu_lib_wrapper::qemu_sc_write(void *opaque, uint32_t addr,
     w->m_io_cb->qemu_io_write(addr, val, size);
 }
 
-uint32_t qemu_lib_wrapper::qemu_sc_call_rabbits(void *opaque,int type,
-                                            int cpu, unsigned long p1)
+int64_t qemu_lib_wrapper::qemu_sc_call_rabbits(void *opaque, int type,
+                                            int cpu, unsigned long p1,
+                                            int64_t val, uint8_t size)
 {
     qemu_lib_wrapper *w = (qemu_lib_wrapper *) opaque;
     switch(type) {
         case 0: //Info
             w->m_qemu_icache->info();
+            w->m_qemu_dcache->info();
             w->m_qemu_annotation->info();
             break;
         case 1: //Annotation
-            w->m_qemu_annotation->update_cpu_cycles(cpu,p1);
+            w->m_qemu_icache->consume_cpu_cycles(cpu);
+            w->m_qemu_dcache->consume_cpu_cycles(cpu);
+            w->m_qemu_annotation->update_cpu_cycles(cpu, p1);
             break;
         case 2: //I Cache
-            w->m_qemu_icache->icache_access(cpu,p1,qemu_sc_read,w);
+            w->m_qemu_icache->icache_access(cpu, p1, qemu_sc_read, w);
             break;
-        case 3: //D Cache
+        case 3: //D Cache Read
+            switch(size) {
+                case 1:
+                    return w->m_qemu_dcache->dcache_read_b(cpu, p1,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+                case 2:
+                    return w->m_qemu_dcache->dcache_read_w(cpu, p1,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+                case 4:
+                    return w->m_qemu_dcache->dcache_read_l(cpu, p1,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+                case 8:
+                    return w->m_qemu_dcache->dcache_read_q(cpu, p1,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+            }
+            break;
+        case 4: //D Cache Write
+            switch(size) {
+                case 1:
+                    w->m_qemu_dcache->dcache_write_b(cpu, p1, val,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+                case 2:
+                    w->m_qemu_dcache->dcache_write_w(cpu, p1, val,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+                case 4:
+                    w->m_qemu_dcache->dcache_write_l(cpu, p1, val,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+                case 8:
+                    w->m_qemu_dcache->dcache_write_q(cpu, p1, val,
+                                            qemu_sc_read, qemu_sc_write,
+                                            w, 1);
+                    break;
+            }
             break;
     }
 
@@ -109,16 +160,15 @@ void qemu_lib_wrapper::init(int num_cpu, std::string cpu_model)
     s.sc_import.call_rabbits = qemu_sc_call_rabbits;
 
     s.q_import = m_qemu_import;
-    m_qemu_annotation = new qemu_annotation("BETA_ANNOTATION",num_cpu);
-    m_qemu_icache = new qemu_icache("BETA_ICACHE",num_cpu);
     s.cpu_model = cpu_model.c_str();
     s.num_cpu = num_cpu;
     s.opaque = this;
 
     m_qemu_ctx = qemu_init(&s);
 
-//    m_qemu_annotation = new qemu_annotation("BETA_ANNOTATION",num_cpu);
-//    m_qemu_icache = new qemu_icache("BETA_ICACHE",num_cpu);
+    m_qemu_annotation = new qemu_annotation("BETA_ANNOTATION",num_cpu);
+    m_qemu_icache = new qemu_icache("BETA_ICACHE",num_cpu);
+    m_qemu_dcache = new qemu_dcache("BETA_DCACHE",num_cpu);
 }
 
 void qemu_lib_wrapper::map_io(uint32_t base, uint32_t size)

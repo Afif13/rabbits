@@ -22,17 +22,15 @@
 
 #include "rabbits-common.h"
 
-#define FULL_CACHE 1
+//#define FULL_CACHE
 
 #define ICACHE_LINES 1024
 #define ICACHE_ASSOC_BITS 1
 #define ICACHE_LINE_BITS 5
 
-//Time we should wait when we have a miss (for the late cache configuration)
-#define NS_ICACHE_MISS 10
+//Time we should wait when we have a miss and will perform mem access (for the late cache configuration)
+#define NS_ICACHE 10
 
-//This define after how many misses we do a wait
-#define MAX_ICACHE_MISS 1
 
 class qemu_icache : public sc_module {
 private:
@@ -41,8 +39,8 @@ private:
     unsigned long *nb_icache_access;
     unsigned long *nb_icache_miss;
 
-    unsigned long *ns_miss;
-    unsigned long *cumulate_ns_miss;
+    unsigned long *ns_icache;
+    unsigned long *cumulate_ns_icache;
 
     int num_cpu;
 
@@ -52,7 +50,9 @@ public:
 
     void icache_access(int cpu, unsigned long addr,
                         uint32_t (*)(void *,uint32_t, uint32_t),void *);
+
     void info(void);
+    void consume_cpu_cycles(int cpu);
 
 private:
     int icache_line_present(int cpu, int start_idx, unsigned long tag);

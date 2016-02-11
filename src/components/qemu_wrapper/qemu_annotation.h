@@ -22,13 +22,11 @@
 
 #include "rabbits-common.h"
 
-//This define when we do a wait (after the execution of MAX_CYCLES)
-#define MAX_CYCLES 20000
 
 class qemu_annotation : public sc_module {
 private:
     unsigned long *nb_cycles; /*Number of cycles used with the wait
-                                reset when reach MAX_CYCLES*/
+                                reset when the cpu change*/
     unsigned long *cumulate_nb_cycles; //Total number of cycles
     int num_cpu; //Number of simulated CPU
 

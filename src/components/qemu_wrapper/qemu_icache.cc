@@ -47,14 +47,14 @@ qemu_icache::qemu_icache(sc_module_name name, int nb_cpu)
     nb_icache_access = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
     nb_icache_miss = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
 
-    ns_miss = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
-    cumulate_ns_miss = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
+    ns_icache = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
+    cumulate_ns_icache = (unsigned long *)malloc(num_cpu * sizeof(unsigned long));
 
     for(i = 0; i < num_cpu; i++) {
         nb_icache_access[i] = 0;
         nb_icache_miss[i] = 0;
-        ns_miss[i] = 0;
-        cumulate_ns_miss[i] = 0;
+        ns_icache[i] = 0;
+        cumulate_ns_icache[i] = 0;
     }
 }
 
@@ -76,12 +76,12 @@ qemu_icache::~qemu_icache()
         delete icache_flags;
     }
 
-    if(cumulate_ns_miss) {
-        delete cumulate_ns_miss;
+    if(cumulate_ns_icache) {
+        delete cumulate_ns_icache;
     }
 
-    if(ns_miss)
-         delete ns_miss;
+    if(ns_icache)
+         delete ns_icache;
 
     if(nb_icache_access)
          delete nb_icache_access;
@@ -97,7 +97,7 @@ void qemu_icache::info()
         DPRINTF("number of access for CPU[%d] = %lu\n",i,nb_icache_access[i]);
         DPRINTF("number of miss for CPU[%d] = %lu\n",i,nb_icache_miss[i]);
 #ifndef FULL_CACHE
-        DPRINTF("time consumed for CPU[%d] = %lu\n",i,cumulate_ns_miss[i]);
+        DPRINTF("time consumed for CPU[%d] = %lu\n",i,cumulate_ns_icache[i]);
 #endif
     }
 
@@ -148,15 +148,16 @@ void qemu_icache::icache_access(int cpu, unsigned long addr,
           we also don't care about the data size */
 #else
         //calculate cycles (the late cache configuration)
-        ns_miss[cpu] += NS_ICACHE_MISS;
-        cumulate_ns_miss[cpu] += NS_ICACHE_MISS;
-        if(ns_miss[cpu] > NS_ICACHE_MISS * MAX_ICACHE_MISS) {
-            wait(ns_miss[cpu],SC_NS);
-            ns_miss[cpu] = 0;
-        }
+        ns_icache[cpu] += NS_ICACHE;
+        cumulate_ns_icache[cpu] += NS_ICACHE;
 #endif
     }
 
 }
 
+void qemu_icache::consume_cpu_cycles(int cpu)
+{
+    wait(ns_icache[cpu],SC_NS);
+    ns_icache[cpu] = 0;
+}
 

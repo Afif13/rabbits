@@ -28,8 +28,9 @@ B_F=".rabbits_annotation"
     NUM_LINE_SUP=$(head -n ${NUM_LINE_ADD} ${FILE_NAME} | tail -n 20 | grep -n -e "for" | cut -d ":" -f1)
 
     NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` # Where to insert our call
-    sed -i$B_F "${NUM_LINE}i\    extern void ${CPU_FUNCTION}();\n\
-        ${CPU_FUNCTION}();" $FILE_NAME
+    sed -i$B_F "${NUM_LINE}i\    ${L_S}\n\
+    ${CPU_FUNCTION}();\n\
+    ${L_E}" $FILE_NAME
 
 # ----------- End CPU update -------------- #
 
@@ -58,8 +59,9 @@ B_F=".rabbits_annotation"
     NAME_P=$(echo ${P} | rev | cut -d " " -f1 | rev)
 
     NUM_LINE=`expr "${NUM_LINE}" + 2` # Where to insert our call
-    sed -i$B_F "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
-    ${ANNOTATE_FUNCTION}(${NAME_P};" $FILE_NAME
+    sed -i$B_F "${NUM_LINE}i\    ${L_S}\n\
+    ${ANNOTATE_FUNCTION}(${NAME_P};\n\
+    ${L_E}" $FILE_NAME
 
     # Add annotation to the disas_thumb_insn
 
@@ -80,8 +82,9 @@ B_F=".rabbits_annotation"
 
 
     NUM_LINE=`expr "${NUM_LINE}" + "${NUM_LINE_SUP}" + 1` #where to insert our call
-    sed -i$B_F "${NUM_LINE}i\    extern void ${ANNOTATE_FUNCTION}(unsigned long insn);\n\
-    ${ANNOTATE_FUNCTION}(insn);" $FILE_NAME
+    sed -i$B_F "${NUM_LINE}i\    ${L_S}\n\
+    ${ANNOTATE_FUNCTION}(insn);\n\
+    ${L_E}" $FILE_NAME
 
 # -------- End Annotation insertion in ARM --------------- #
 
@@ -112,27 +115,136 @@ ICACHE_FUNCTION=rabbits_${ICACHE_HELPER}
 
     # The header of the helper function
     FILE_NAME=$(find "${QEMU_SRCS_DIR}" -name "helper.h" | grep -e "${ARCH}")
-    sed -i$B_F "1i\DEF_HELPER_1(${ICACHE_HELPER},void,i32)\n" $FILE_NAME
+    sed -i$B_F "1i\ ${L_S}\nDEF_HELPER_1(${ICACHE_HELPER},void,i32)\n${L_E}" $FILE_NAME
 
     #mv rabbits_file_${ARCH}_icache ${FILE_NAME}
 
     # The implementation of the helper function
     FILE_NAME=$(find "${QEMU_SRCS_DIR}" -name "op_helper.c" | grep -e "${ARCH}")
-    echo -n -e "\nvoid HELPER($ICACHE_HELPER)(uint32_t addr)\n{
-    extern void $ICACHE_FUNCTION(unsigned long addr);
-    $ICACHE_FUNCTION(addr);\n}" >> ${FILE_NAME}
+    echo -n -e "\n$L_S\nvoid HELPER($ICACHE_HELPER)(uint32_t addr)\n{
+    $ICACHE_FUNCTION(addr);\n}\n$L_E" >> ${FILE_NAME}
 
     # find the call of cpu_ldx_code (here we search for arm_ldx_code)
     # TODO: try to find a more generic manner that can fit all the architecture
     # This a very bad hard coded insertion !! we need to find a better way
-    FILE_NAME="${QEMU_SRCS_DIR}/target-arm/translate.c"
+    FILE_NAME="${QEMU_SRCS_DIR}/target-${ARCH}/translate.c"
     RES=$(grep  -n "${FILE_NAME}" -e "arm_ldl_code(" | tail -n 1)
     NUM_LINE=$(echo ${RES} | cut -d ":" -f1)
     ARG=$(echo ${RES} | cut -d "," -f2) # We get the second argument which is the PC
     TMP_ARG=pc_tmp_rabbits # A temporary TCG variable to use
 
     NUM_LINE=`expr "${NUM_LINE}" + 1` # Where to insert our call
-    sed -i$B_F "${NUM_LINE}i\    TCGv    ${TMP_ARG} = tcg_temp_new();\n\
+    sed -i$B_F "${NUM_LINE}i\    ${L_S}\n\
+    TCGv    ${TMP_ARG} = tcg_temp_new();\n\
     tcg_gen_movi_i32(${TMP_ARG},(uint32_t)${ARG});\n\
     gen_helper_${ICACHE_HELPER}(${TMP_ARG});\n\
-    tcg_temp_free (${TMP_ARG});" $FILE_NAME
+    tcg_temp_free (${TMP_ARG});\n\
+    ${L_E}" $FILE_NAME
+
+
+# ------ End Icache call Insertion ----- #
+
+
+# ------ Insert Dcache call in all the architecture ----- #
+
+# We are interested with the Helpers defined in softmmu_template.h
+# This helper are use by each architecture in the TCG Back end
+
+# The helpers call are stored in a constant array under tcg-target.c
+# qemu_ld_helpers and qemu_st_helpers
+# We will modify this array to put our helper calls
+
+LD_HELPER_S="extern tcg_target_ulong helper_"
+LD_HELPER_E="_mmu_rabbits(CPUArchState *env, target_ulong addr, TCGMemOpIdx oi, uintptr_t retaddr);"
+
+LD_HELPER=$LD_HELPER_S"ret_ldub"${LD_HELPER_E}"\n"\
+$LD_HELPER_S"le_lduw"$LD_HELPER_E"\n"\
+$LD_HELPER_S"be_lduw"$LD_HELPER_E"\n"\
+$LD_HELPER_S"le_ldul"$LD_HELPER_E"\n"\
+$LD_HELPER_S"be_ldul"$LD_HELPER_E"\n"\
+$LD_HELPER_S"le_ldq"$LD_HELPER_E"\n"\
+$LD_HELPER_S"be_ldq"$LD_HELPER_E"\n"\
+$LD_HELPER_S"ret_ldsb"$LD_HELPER_E"\n"\
+$LD_HELPER_S"le_ldsw"$LD_HELPER_E"\n"\
+$LD_HELPER_S"le_ldsl"$LD_HELPER_E"\n"\
+$LD_HELPER_S"be_ldsw"$LD_HELPER_E"\n"\
+$LD_HELPER_S"be_ldsl"$LD_HELPER_E"\n"
+
+ST_HELPER_S="extern void helper_"
+ST_HELPER_E1="_mmu_rabbits(CPUArchState *env, target_ulong addr, "
+ST_HELPER_E2=", TCGMemOpIdx oi, uintptr_t retaddr);"
+
+ST_HELPER=$ST_HELPER_S"ret_stb"$ST_HELPER_E1"uint8_t val"$ST_HELPER_E2"\n"\
+$ST_HELPER_S"le_stw"$ST_HELPER_E1"uint16_t val"$ST_HELPER_E2"\n"\
+$ST_HELPER_S"be_stw"$ST_HELPER_E1"uint16_t val"$ST_HELPER_E2"\n"\
+$ST_HELPER_S"le_stl"$ST_HELPER_E1"uint32_t val"$ST_HELPER_E2"\n"\
+$ST_HELPER_S"be_stl"$ST_HELPER_E1"uint32_t val"$ST_HELPER_E2"\n"\
+$ST_HELPER_S"le_stq"$ST_HELPER_E1"uint64_t val"$ST_HELPER_E2"\n"\
+$ST_HELPER_S"be_stq"$ST_HELPER_E1"uint64_t val"$ST_HELPER_E2"\n"
+
+
+    # Insert our call in all the Architecture
+
+    for ARCH in 'i386' 'arm' 'mips' # We can add the architecture we want
+    do
+    # Find the Array of load helper
+
+    RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/tcg/${ARCH}" -e "const qemu_ld_helpers" | tail -n 1)
+    FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+    NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+
+
+    # We get the content of the array to avoid having different content (a bit hardcoded ...)
+    INC=`expr "${NUM_LINE}" + 1`
+    CONTENT=$(sed -n "${INC}p" $FILE_NAME | cut -d"," -f1)
+    NEW_CONTENT=""
+    while test "$CONTENT" != "};"
+    do
+        if [ ! -z "$CONTENT" ]; then # This for Arm that are using empty lines !!!
+            CONTENT+="_rabbits,\n"
+        fi
+        NEW_CONTENT+=$CONTENT
+        INC=`expr "${INC}" + 1`
+        CONTENT=$(sed -n "${INC}p" $FILE_NAME | cut -d"," -f1)
+    done
+
+    #We change it by our own content
+    sed -i$B_F "${INC}i\ */" $FILE_NAME
+    NUM_LINE=`expr "${NUM_LINE}" + 1`
+    sed -i$B_F "${NUM_LINE}i\ ${NEW_CONTENT}/*" $FILE_NAME
+
+    # We insert the helpers headers to avoid errors
+    NUM_LINE=`expr "${NUM_LINE}" - 1`
+    sed -i$B_F "${NUM_LINE}i\ ${L_S}\n${LD_HELPER}\n${L_E}" $FILE_NAME
+
+    # We do the same process with store helper
+    RES=$(grep --include=*.c -rn "${QEMU_SRCS_DIR}/tcg/${ARCH}" -e "const qemu_st_helpers" | tail -n 1)
+    FILE_NAME=$(echo ${RES} | cut -d ":" -f1)
+    NUM_LINE=$(echo ${RES} | cut -d ":" -f2)
+
+
+    # We get the content of the array to avoid having different content (a bit hardcoded ...)
+    INC=`expr "${NUM_LINE}" + 1`
+    CONTENT=$(sed -n "${INC}p" $FILE_NAME | cut -d"," -f1)
+    NEW_CONTENT=""
+    while test "$CONTENT" != "};"
+    do
+        if [ ! -z "$CONTENT" ]; then # This for Arm that are using empty lines !!!
+            CONTENT+="_rabbits,\n"
+        fi
+        NEW_CONTENT+=$CONTENT
+        INC=`expr "${INC}" + 1`
+        CONTENT=$(sed -n "${INC}p" $FILE_NAME | cut -d"," -f1)
+    done
+
+    #We change it by our own content
+    sed -i$B_F "${INC}i\ */" $FILE_NAME
+    NUM_LINE=`expr "${NUM_LINE}" + 1`
+    sed -i$B_F "${NUM_LINE}i\ ${NEW_CONTENT}/*" $FILE_NAME
+
+    # We insert the helpers headers to avoid errors
+    NUM_LINE=`expr "${NUM_LINE}" - 1`
+    sed -i$B_F "${NUM_LINE}i\ ${L_S}\n${ST_HELPER}\n${L_E}" $FILE_NAME
+    done
+
+# ------ End Dcache call Insertion ----- #

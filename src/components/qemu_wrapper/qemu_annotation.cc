@@ -63,8 +63,9 @@ void qemu_annotation::update_cpu_cycles(int cpu, unsigned long cycles)
 {
     cumulate_nb_cycles[cpu] += cycles;
     nb_cycles[cpu] += cycles;
-    if(nb_cycles[cpu] > MAX_CYCLES)
-        consume_cpu_cycles(cpu);
+
+//    if(nb_cycles[cpu] > MAX_CYCLES)
+    consume_cpu_cycles(cpu);
 }
 void qemu_annotation::consume_cpu_cycles(int cpu)
 {
@@ -72,5 +73,4 @@ void qemu_annotation::consume_cpu_cycles(int cpu)
     //TODO : calculate the time we should really wait
     wait(nb_cycles[cpu],SC_NS);
     nb_cycles[cpu] = 0;
-
 }

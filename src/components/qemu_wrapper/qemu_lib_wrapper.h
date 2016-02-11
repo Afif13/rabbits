@@ -24,6 +24,7 @@
 #include "rabbits-common.h"
 #include "qemu_annotation.h"
 #include "qemu_icache.h"
+#include "qemu_dcache.h"
 
 struct qemu_import;
 struct qemu_context;
@@ -51,6 +52,7 @@ private:
 
     qemu_annotation *m_qemu_annotation;
     qemu_icache *m_qemu_icache;
+    qemu_dcache *m_qemu_dcache;
 
     void *m_lib_hdl;
 
@@ -60,8 +62,8 @@ private:
     static uint32_t qemu_sc_read(void *opaque, uint32_t addr, uint32_t size);
     static void qemu_sc_write(void *opaque, uint32_t addr,
                               uint32_t val, uint32_t size);
-    static uint32_t qemu_sc_call_rabbits(void *opaque,int type,
-                              int cpu,unsigned long p1);
+    static int64_t qemu_sc_call_rabbits(void *opaque, int type,
+                              int cpu, unsigned long p1, int64_t val, uint8_t size);
     static void char_dev_read(void *opaque, const uint8_t *data, int len);
 
 public:
