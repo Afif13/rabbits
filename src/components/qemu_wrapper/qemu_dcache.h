@@ -21,33 +21,7 @@
 #define _QEMU_WAPPER_QEMU_DCACHE_H
 
 #include "rabbits-common.h"
-
-//#define FULL_CACHE
-
-#define DCACHE_LINES 1024
-#define DCACHE_ASSOC_BITS 1
-#define DCACHE_LINE_BITS 5
-#define DCACHE_LINE_WORDS   (1 << (DCACHE_LINE_BITS - 2))
-#define DCACHE_LINE_SIZE   (1 << DCACHE_LINE_BITS)
-#define DCACHE_LINE_MASK    (DCACHE_LINE_SIZE - 1)
-
-
-//Time we should wait when we will perform read/write (for the late cache configuration)
-#define NS_DCACHE_READ 10
-#define NS_DCACHE_WRITE 10
-
-
-enum {
-   MODIFIED = 2,
-   SHARED = 1,
-   INVALID = 0
-};
-
-typedef struct {
-   uint8_t dirty; //Used only for write back
-   uint8_t state; //Used for validity and cache coherency
-} d_flags;
-
+#include "qemu-cache.h"
 
 class qemu_dcache : public sc_module {
 private:
@@ -113,7 +87,7 @@ public:
                         int count);
 
     void info(void);
-    void consume_cpu_cycles(int cpu);
+    void consume_cpu_cycles(void);
 
 
 private:

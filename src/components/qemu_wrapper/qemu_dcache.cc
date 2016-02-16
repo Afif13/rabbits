@@ -122,10 +122,21 @@ void qemu_dcache::info()
 
 }
 
-void qemu_dcache::consume_cpu_cycles(int cpu)
+void qemu_dcache::consume_cpu_cycles(void)
 {
-    wait(ns_dcache[cpu],SC_NS);
-    ns_dcache[cpu] = 0;
+#ifndef WAIT_CACHE
+    unsigned long max = 0;
+    int i;
+
+    for(i = 0; i < num_cpu; i++)
+        if(ns_dcache[i] > max)
+            max = ns_dcache[i];
+
+    wait(max,SC_NS);
+
+    for(i = 0; i < num_cpu; i++)
+        ns_dcache[i] = 0;
+#endif
 }
 
 
@@ -176,12 +187,18 @@ void * qemu_dcache::dcache_read(int cpu, unsigned long addr,
                 dcache_flags[c][ic].state = SHARED;
         }
 #ifdef FULL_CACHE
+        //perform a mem access
         unsigned long addr_read = addr & ~DCACHE_LINE_MASK;
         for (w = 0; w < DCACHE_LINE_WORDS; w++)
             *(  ((uint32_t *)dcache_data[cpu][idx]) + w) = read_mem(opaque, addr_read + w, 4);
 #else
+    #ifndef WAIT_CACHE
         //calculate cycles (the late cache configuration)
         ns_dcache[cpu] += NS_DCACHE_READ;
+    #else
+        //perform a wait (wait cache configuration
+        wait(NS_DCACHE_READ,SC_NS);
+    #endif
         cumulate_ns_dcache[cpu] += NS_DCACHE_READ;
 #endif
     }
@@ -315,8 +332,13 @@ void qemu_dcache::dcache_write(int cpu, unsigned long addr, int nb, int32_t val,
     for (w = 0; w < DCACHE_LINE_WORDS; w++)
         *(  ((uint32_t *)dcache_data[cpu][idx]) + w) = read_mem(opaque, addr_read + w, 4);
 #else
+    #ifndef WAIT_CACHE
     //calculate cycles (the late cache configuration)
     ns_dcache[cpu] += NS_DCACHE_WRITE;
+    #else
+    //perform a wait (wait cache configuration)
+    wait(NS_DCACHE_WRITE,SC_NS);
+    #endif
     cumulate_ns_dcache[cpu] += NS_DCACHE_WRITE;
 #endif
 

@@ -35,10 +35,9 @@ public:
     ~qemu_annotation();
 
     void update_cpu_cycles(int cpu, unsigned long cycles);
+    void consume_cpu_cycles(void);
     void info(void);
 
-private:
-    void consume_cpu_cycles(int cpu);
 };
 
 #endif

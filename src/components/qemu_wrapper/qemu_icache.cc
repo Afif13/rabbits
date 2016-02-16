@@ -147,17 +147,32 @@ void qemu_icache::icache_access(int cpu, unsigned long addr,
           so we only need to be sure it in the RAM
           we also don't care about the data size */
 #else
+    #ifndef WAIT_CACHE
         //calculate cycles (the late cache configuration)
         ns_icache[cpu] += NS_ICACHE;
+    #else
+        //perform a wait
+        wait(NS_ICACHE,SC_NS);
+    #endif
         cumulate_ns_icache[cpu] += NS_ICACHE;
 #endif
     }
 
 }
 
-void qemu_icache::consume_cpu_cycles(int cpu)
+void qemu_icache::consume_cpu_cycles(void)
 {
-    wait(ns_icache[cpu],SC_NS);
-    ns_icache[cpu] = 0;
+#ifndef WAIT_CACHE
+    unsigned long max = 0;
+    int i;
+
+    for(i = 0; i < num_cpu; i++)
+        if(ns_icache[i] > max)
+            max = ns_icache[i];
+
+    wait(max,SC_NS);
+    for(i = 0; i < num_cpu; i++)
+        ns_icache[i] = 0;
+#endif
 }
 

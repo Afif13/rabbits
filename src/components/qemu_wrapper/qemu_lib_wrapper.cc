@@ -79,14 +79,17 @@ int64_t qemu_lib_wrapper::qemu_sc_call_rabbits(void *opaque, int type,
             w->m_qemu_annotation->info();
             break;
         case 1: //Annotation
-            w->m_qemu_icache->consume_cpu_cycles(cpu);
-            w->m_qemu_dcache->consume_cpu_cycles(cpu);
             w->m_qemu_annotation->update_cpu_cycles(cpu, p1);
             break;
-        case 2: //I Cache
+        case 2: //Sync
+            w->m_qemu_icache->consume_cpu_cycles();
+            w->m_qemu_dcache->consume_cpu_cycles();
+            w->m_qemu_annotation->consume_cpu_cycles();
+            break;
+        case 3: //I Cache
             w->m_qemu_icache->icache_access(cpu, p1, qemu_sc_read, w);
             break;
-        case 3: //D Cache Read
+        case 4: //D Cache Read
             switch(size) {
                 case 1:
                     return w->m_qemu_dcache->dcache_read_b(cpu, p1,
@@ -110,7 +113,7 @@ int64_t qemu_lib_wrapper::qemu_sc_call_rabbits(void *opaque, int type,
                     break;
             }
             break;
-        case 4: //D Cache Write
+        case 5: //D Cache Write
             switch(size) {
                 case 1:
                     w->m_qemu_dcache->dcache_write_b(cpu, p1, val,

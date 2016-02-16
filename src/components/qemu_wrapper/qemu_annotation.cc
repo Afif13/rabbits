@@ -63,14 +63,19 @@ void qemu_annotation::update_cpu_cycles(int cpu, unsigned long cycles)
 {
     cumulate_nb_cycles[cpu] += cycles;
     nb_cycles[cpu] += cycles;
-
-//    if(nb_cycles[cpu] > MAX_CYCLES)
-    consume_cpu_cycles(cpu);
 }
-void qemu_annotation::consume_cpu_cycles(int cpu)
+
+void qemu_annotation::consume_cpu_cycles(void)
 {
-//    DPRINTF("Consumming %lu for CPU %d\n",nb_cycles[current_cpu],current_cpu);
-    //TODO : calculate the time we should really wait
-    wait(nb_cycles[cpu],SC_NS);
-    nb_cycles[cpu] = 0;
+    unsigned long max = 0;
+    int i;
+
+    for(i = 0; i < num_cpu; i++)
+        if(nb_cycles[i] > max)
+            max = nb_cycles[i];
+
+    wait(max,SC_NS);
+
+    for(i = 0; i < num_cpu; i++)
+        nb_cycles[i] = 0;
 }

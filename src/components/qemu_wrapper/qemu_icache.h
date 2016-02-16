@@ -21,16 +21,7 @@
 #define _QEMU_WAPPER_QEMU_ICACHE_H
 
 #include "rabbits-common.h"
-
-//#define FULL_CACHE
-
-#define ICACHE_LINES 1024
-#define ICACHE_ASSOC_BITS 1
-#define ICACHE_LINE_BITS 5
-
-//Time we should wait when we have a miss and will perform mem access (for the late cache configuration)
-#define NS_ICACHE 10
-
+#include "qemu-cache.h"
 
 class qemu_icache : public sc_module {
 private:
@@ -52,7 +43,7 @@ public:
                         uint32_t (*)(void *,uint32_t, uint32_t),void *);
 
     void info(void);
-    void consume_cpu_cycles(int cpu);
+    void consume_cpu_cycles(void);
 
 private:
     int icache_line_present(int cpu, int start_idx, unsigned long tag);
