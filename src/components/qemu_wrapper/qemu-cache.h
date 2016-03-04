@@ -8,10 +8,10 @@
   Full Cache Configuration : define FULL_CACHE
 */
 
-//#define FULL_CACHE
+#define FULL_CACHE
 
 #ifndef FULL_CACHE
-    //#define WAIT_CACHE
+//    #define WAIT_CACHE
 #endif
 
 
@@ -24,7 +24,7 @@
 #define DCACHE_LINE_MASK    (DCACHE_LINE_SIZE - 1)
 
 
-//Time we should wait when we will perform read/write (for the late cache configuration)
+//Time we should wait when we will perform read/write (for the late & wait cache configuration)
 #define NS_DCACHE_READ 10
 #define NS_DCACHE_WRITE 10
 

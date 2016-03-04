@@ -45,11 +45,11 @@ qemu_dcache::qemu_dcache(sc_module_name name, int nb_cpu)
         }
     }
 
-    dcache_data = (int8_t ***)malloc(num_cpu *  sizeof (int8_t **));
+    dcache_data = (uint8_t ***)malloc(num_cpu *  sizeof (uint8_t **));
     for (i = 0; i < num_cpu; i++) {
-        dcache_data[i] = (int8_t **)malloc(DCACHE_LINES *  sizeof (int8_t *));
+        dcache_data[i] = (uint8_t **)malloc(DCACHE_LINES *  sizeof (uint8_t *));
         for (line = 0; line < DCACHE_LINES; line++) {
-            dcache_data[i][line] = (int8_t *)malloc(DCACHE_LINE_SIZE *  sizeof (int8_t));
+            dcache_data[i][line] = (uint8_t *)malloc(DCACHE_LINE_SIZE *  sizeof (uint8_t));
             for (w = 0; w < DCACHE_LINE_WORDS; w++)
                 *( ((uint32_t *)dcache_data[i][line]) + w) = (uint32_t)0xDEADBEEF;
         }
@@ -170,8 +170,10 @@ void * qemu_dcache::dcache_read(int cpu, unsigned long addr,
     start_idx = tag & (DCACHE_LINES - 1) & ~((1 << DCACHE_ASSOC_BITS) - 1);
     idx = dcache_line_present(cpu, start_idx, tag);
 
+//    DPRINTF("CPU[%d] Cache Read for addr  = %08x\n",cpu,addr);
     if (idx == -1 || dcache_flags[cpu][idx].state == INVALID) { /* cache miss */
         nb_dcache_miss[cpu]++;
+//        DPRINTF("\tCPU[%d] Cache miss for addr  = %08x\n",cpu,addr);
 
         idx = dcache_line_replace(cpu, start_idx);
         dcache_tag[cpu][idx] = tag;
@@ -183,14 +185,17 @@ void * qemu_dcache::dcache_read(int cpu, unsigned long addr,
         int c, ic;
         for(c = 0; c < num_cpu && c != cpu; c++) {
             ic = dcache_line_present(c, start_idx, tag);
-            if(ic != -1 && dcache_flags[c][ic].state == MODIFIED)
+            if(ic != -1 && dcache_flags[c][ic].state == MODIFIED) {
                 dcache_flags[c][ic].state = SHARED;
+//                DPRINTF("\t\t @ CPU[%d] Modified to Shared for addr  = %08x\n",c,addr);
+            }
         }
+
 #ifdef FULL_CACHE
         //perform a mem access
         unsigned long addr_read = addr & ~DCACHE_LINE_MASK;
         for (w = 0; w < DCACHE_LINE_WORDS; w++)
-            *(  ((uint32_t *)dcache_data[cpu][idx]) + w) = read_mem(opaque, addr_read + w, 4);
+            *(  ((uint32_t *)dcache_data[cpu][idx]) + w) = read_mem(opaque, addr_read + 4*w, 4);
 #else
     #ifndef WAIT_CACHE
         //calculate cycles (the late cache configuration)
@@ -201,39 +206,44 @@ void * qemu_dcache::dcache_read(int cpu, unsigned long addr,
     #endif
         cumulate_ns_dcache[cpu] += NS_DCACHE_READ;
 #endif
-    }
+     }
 
     return &dcache_data[cpu][idx][addr & DCACHE_LINE_MASK]; //not needed in cache Late
 }
 
-int64_t qemu_dcache::dcache_read_q(int cpu, unsigned long addr,
+uint64_t qemu_dcache::dcache_read_q(int cpu, unsigned long addr,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    int32_t low, hi;
+    uint32_t low, hi;
 
-    if(count == 1) //here we are sure it will be always 1 cause we cannot call recursivly the read_q
+    if(count == 1) {//here we are sure it will be always 1 cause we cannot call recursivly the read_q
         nb_mem_read[cpu]++;
+//        DPRINTF("CPU[%d] Reading 64bits @ %08x\n",cpu,addr);
+    }
 
     low = dcache_read_l(cpu, addr, read_mem, write_mem, opaque, 0);
     hi  = dcache_read_l(cpu, addr + 4, read_mem, write_mem, opaque, 0);
 
-    return (((int64_t) hi) << 32) + low;
+    return (((uint64_t) hi) << 32) + low;
 }
 
-int32_t qemu_dcache::dcache_read_l(int cpu, unsigned long addr,
+uint32_t qemu_dcache::dcache_read_l(int cpu, unsigned long addr,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    if(count == 1)
+    if(count == 1) {
         nb_mem_read[cpu]++;
+//        DPRINTF("CPU[%d] Reading 32bits @ %08x\n",cpu,addr);
+    }
 
     if ( ((addr & DCACHE_LINE_MASK) + 3) < DCACHE_LINE_SIZE ) /* We are not at a cache line boundary so we don't care about alignement*/
-        return *(int32_t *)dcache_read(cpu, addr, read_mem, write_mem, opaque);
+        return *(uint32_t *)dcache_read(cpu, addr, read_mem, write_mem, opaque);
     else { /* Here we are at a cache line boundary, we have 2 cases*/
-        int32_t x, y, z;
+        uint32_t x, y, z;
+//        DPRINTF("Reading 32bits not aligned\n");
         if (addr & 1) {
             z = dcache_read_b(cpu, addr + 0, read_mem, write_mem, opaque, 0);
             y = dcache_read_w(cpu, addr + 1, read_mem, write_mem, opaque, 0); /* half word aligned for sure, next cache line if 3 */
@@ -247,38 +257,43 @@ int32_t qemu_dcache::dcache_read_l(int cpu, unsigned long addr,
     }
 }
 
-int16_t qemu_dcache::dcache_read_w(int cpu, unsigned long addr,
+uint16_t qemu_dcache::dcache_read_w(int cpu, unsigned long addr,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    if(count == 1)
+    if(count == 1) {
         nb_mem_read[cpu]++;
+//        DPRINTF("CPU[%d] Reading 16bits @ %08x\n",cpu,addr);
+    }
 
     if ( ((addr & DCACHE_LINE_MASK) + 1) < DCACHE_LINE_SIZE ) /* We are not at a cache line boundary */
-        return *(int16_t *)dcache_read(cpu, addr, read_mem, write_mem, opaque);
+        return *(uint16_t *)dcache_read(cpu, addr, read_mem, write_mem, opaque);
     else {/* Here we are at a cache line boundary, we have only 1 case */
-        int8_t x, y;
+        uint8_t x, y;
         y = dcache_read_b(cpu, addr + 0, read_mem, write_mem, opaque, 0);
         x = dcache_read_b(cpu, addr + 1, read_mem, write_mem, opaque, 0);
+//        DPRINTF("Reading 16bits not aligned [%02x %02x]\n",x,y);
         return (x << 8) | y;
     }
 }
 
-int8_t qemu_dcache::dcache_read_b(int cpu, unsigned long addr,
+uint8_t qemu_dcache::dcache_read_b(int cpu, unsigned long addr,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    if(count == 1)
+    if(count == 1) {
         nb_mem_read[cpu]++;
+//        DPRINTF("CPU[%d] Reading 8bits @ %08x\n",cpu,addr);
+    }
 
-    return *(int8_t *)dcache_read(cpu, addr, read_mem, write_mem, opaque);
+    return *(uint8_t *)dcache_read(cpu, addr, read_mem, write_mem, opaque);
 }
 
 
 
-void qemu_dcache::dcache_write(int cpu, unsigned long addr, int nb, int32_t val,
+void qemu_dcache::dcache_write(int cpu, unsigned long addr, int nb, uint32_t val,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque)
 {
@@ -290,8 +305,10 @@ void qemu_dcache::dcache_write(int cpu, unsigned long addr, int nb, int32_t val,
     start_idx = tag & (DCACHE_LINES - 1) & ~((1 << DCACHE_ASSOC_BITS) - 1);
     idx = dcache_line_present(cpu, start_idx, tag);
 
+//    DPRINTF("CPU[%d] Cache write for addr  = %08x with = %08x\n",cpu,addr,val);
     if (idx == -1 || dcache_flags[cpu][idx].state == INVALID) { /* cache miss  */
         //we work with allocate on write, so in all the cases we will write on cache and mem
+//        DPRINTF("\tCPU[%d] Cache miss for addr  = %08x\n",cpu,addr);
         idx = dcache_line_replace(cpu, start_idx);
         dcache_tag[cpu][idx] = tag;
     }
@@ -311,6 +328,7 @@ void qemu_dcache::dcache_write(int cpu, unsigned long addr, int nb, int32_t val,
     //we update the value in the cache
     //we do it but actually we don't need
     // for late cache we don't really need the data and for full cache we are going to reload the whole line again
+
     switch(nb) {
     case 1:
         *((int8_t *)&dcache_data[cpu][idx][ofs]) = (int8_t)(val & 0x000000ff);
@@ -323,14 +341,17 @@ void qemu_dcache::dcache_write(int cpu, unsigned long addr, int nb, int32_t val,
         break;
     }
 
+
 #ifdef FULL_CACHE
     //we write to the mem
-    write_mem(opaque, addr, dcache_data[cpu][idx][ofs], nb);
+//    write_mem(opaque, addr, /*dcache_data[cpu][idx][ofs]*/val, nb);
     //we bring the whole line from Mem
     unsigned long addr_read = addr & ~DCACHE_LINE_MASK;
     int w;
-    for (w = 0; w < DCACHE_LINE_WORDS; w++)
-        *(  ((uint32_t *)dcache_data[cpu][idx]) + w) = read_mem(opaque, addr_read + w, 4);
+    for (w = 0; w < DCACHE_LINE_WORDS; w++) {
+        *(  ((uint32_t *)dcache_data[cpu][idx]) + w) = read_mem(opaque, addr_read + 4*w, 4);
+//        DPRINTF("\tCache filling line @ addr  = %08x with = %08x\n",addr_read + 4*w,*(  ((uint32_t *)dcache_data[cpu][idx]) + w));
+   }
 #else
     #ifndef WAIT_CACHE
     //calculate cycles (the late cache configuration)
@@ -345,67 +366,77 @@ void qemu_dcache::dcache_write(int cpu, unsigned long addr, int nb, int32_t val,
 
 }
 
-void qemu_dcache::dcache_write_q(int cpu, unsigned long addr, int64_t val,
+void qemu_dcache::dcache_write_q(int cpu, unsigned long addr, uint64_t val,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    if(count == 1)
+    if(count == 1) {
         nb_mem_write[cpu]++;
+//        DPRINTF("CPU[%d] Writing 64bits @ %08x\n",cpu,addr);
+    }
 
-    dcache_write_l(cpu, addr + 0, (int32_t)(val & 0xffffffff), read_mem, write_mem, opaque, 0);
-    dcache_write_l(cpu, addr + 4, (int32_t)(val >> 32), read_mem, write_mem, opaque, 0);
+    dcache_write_l(cpu, addr + 0, (uint32_t)(val & 0xffffffff), read_mem, write_mem, opaque, 0);
+    dcache_write_l(cpu, addr + 4, (uint32_t)(val >> 32), read_mem, write_mem, opaque, 0);
 }
 
-void qemu_dcache::dcache_write_l(int cpu, unsigned long addr, int32_t val,
+void qemu_dcache::dcache_write_l(int cpu, unsigned long addr, uint32_t val,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    if(count == 1)
+    if(count == 1) {
         nb_mem_write[cpu]++;
+//        DPRINTF("CPU[%d] Writing 32bits @ %08x\n",cpu,addr);
+    }
 
     if (( (addr & DCACHE_LINE_MASK) + 3) < DCACHE_LINE_SIZE) {
-        dcache_write(cpu, addr, 4, (int32_t)val, read_mem, write_mem, opaque);
+        dcache_write(cpu, addr, 4, (uint32_t)val, read_mem, write_mem, opaque);
     } else { /* Unaligned*/
+//        DPRINTF("Writing 32bits not aligned\n");
         if (addr & 1) {
-            dcache_write_b(cpu, addr + 0, (int8_t)(val >> 0) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
-            dcache_write_w(cpu, addr + 1, (int16_t)(val >> 8) /*& 0x0000ffff*/, read_mem, write_mem, opaque, 0);
-            dcache_write_b(cpu, addr + 3, (int8_t)(val >> 24) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
+            dcache_write_b(cpu, addr + 0, (uint8_t)(val >> 0) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
+            dcache_write_w(cpu, addr + 1, (uint16_t)(val >> 8) /*& 0x0000ffff*/, read_mem, write_mem, opaque, 0);
+            dcache_write_b(cpu, addr + 3, (uint8_t)(val >> 24) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
         } else {
-            dcache_write_w(cpu, addr + 0, (int16_t)(val >> 0)  /*& 0x0000ffff*/, read_mem, write_mem, opaque, 0);
-            dcache_write_w(cpu, addr + 2, (int16_t)(val >> 16) /*& 0x0000ffff*/, read_mem, write_mem, opaque, 0);
+            dcache_write_w(cpu, addr + 0, (uint16_t)(val >> 0)  /*& 0x0000ffff*/, read_mem, write_mem, opaque, 0);
+            dcache_write_w(cpu, addr + 2, (uint16_t)(val >> 16) /*& 0x0000ffff*/, read_mem, write_mem, opaque, 0);
         }
    }
 
 }
 
-void qemu_dcache::dcache_write_w(int cpu, unsigned long addr, int16_t val,
+void qemu_dcache::dcache_write_w(int cpu, unsigned long addr, uint16_t val,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    if(count == 1)
+    if(count == 1) {
         nb_mem_write[cpu]++;
+//        DPRINTF("CPU[%d] Writing 8bits @ %08x\n",cpu,addr);
+    }
 
     if (((addr & DCACHE_LINE_MASK) + 1) < DCACHE_LINE_SIZE) {
-        dcache_write(cpu, addr, 2, (int32_t)val, read_mem, write_mem, opaque);
+        dcache_write(cpu, addr, 2, (uint32_t)val, read_mem, write_mem, opaque);
     } else { /* Unaligned */
-        dcache_write_b(cpu, addr + 0, (int8_t)(val >> 0) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
-        dcache_write_b(cpu, addr + 1, (int8_t)(val >> 8) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
+//        DPRINTF("Writing 16bits not aligned\n");
+        dcache_write_b(cpu, addr + 0, (uint8_t)(val >> 0) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
+        dcache_write_b(cpu, addr + 1, (uint8_t)(val >> 8) /*& 0x000000ff*/, read_mem, write_mem, opaque, 0);
     }
 
 
 }
 
 
-void qemu_dcache::dcache_write_b(int cpu, unsigned long addr, int8_t val,
+void qemu_dcache::dcache_write_b(int cpu, unsigned long addr, uint8_t val,
                     uint32_t (*read_mem)(void *,uint32_t, uint32_t),
                     void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque,
                     int count)
 {
-    if(count == 1)
+    if(count == 1) {
         nb_mem_write[cpu]++;
+//        DPRINTF("CPU[%d] Writing 8bits @ %08x\n",cpu,addr);
+    }
 
-    dcache_write(cpu, addr, 1, (int32_t)val, read_mem, write_mem, opaque);
+    dcache_write(cpu, addr, 1, (uint32_t)val, read_mem, write_mem, opaque);
 }

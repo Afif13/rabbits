@@ -67,9 +67,9 @@ void qemu_lib_wrapper::qemu_sc_write(void *opaque, uint32_t addr,
     w->m_io_cb->qemu_io_write(addr, val, size);
 }
 
-int64_t qemu_lib_wrapper::qemu_sc_call_rabbits(void *opaque, int type,
+uint64_t qemu_lib_wrapper::qemu_sc_call_rabbits(void *opaque, int type,
                                             int cpu, unsigned long p1,
-                                            int64_t val, uint8_t size)
+                                            uint64_t val, uint8_t size)
 {
     qemu_lib_wrapper *w = (qemu_lib_wrapper *) opaque;
     switch(type) {

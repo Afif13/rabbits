@@ -27,7 +27,7 @@ class qemu_dcache : public sc_module {
 private:
     d_flags (**dcache_flags);
     unsigned long (**dcache_tag);
-    int8_t (***dcache_data);
+    uint8_t (***dcache_data);
 
     unsigned long *nb_dcache_miss;
 
@@ -43,45 +43,45 @@ public:
     qemu_dcache(sc_module_name name,int nb_cpu);
     ~qemu_dcache();
 
-    int8_t dcache_read_b(int cpu, unsigned long addr,
+    uint8_t dcache_read_b(int cpu, unsigned long addr,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count); /*since we are calling recursivly our functions
                                     we use this var to avoid over counting*/
 
-    int16_t dcache_read_w(int cpu, unsigned long addr,
+    uint16_t dcache_read_w(int cpu, unsigned long addr,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count);
 
-    int32_t dcache_read_l(int cpu, unsigned long addr,
+    uint32_t dcache_read_l(int cpu, unsigned long addr,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count);
 
-    int64_t dcache_read_q(int cpu, unsigned long addr,
+    uint64_t dcache_read_q(int cpu, unsigned long addr,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count);
 
 
 
-    void dcache_write_b(int cpu, unsigned long addr, int8_t val,
+    void dcache_write_b(int cpu, unsigned long addr, uint8_t val,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count);
 
-    void dcache_write_w(int cpu, unsigned long addr, int16_t val,
+    void dcache_write_w(int cpu, unsigned long addr, uint16_t val,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count);
 
-    void dcache_write_l(int cpu, unsigned long addr, int32_t val,
+    void dcache_write_l(int cpu, unsigned long addr, uint32_t val,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count);
 
-    void dcache_write_q(int cpu, unsigned long addr, int64_t val,
+    void dcache_write_q(int cpu, unsigned long addr, uint64_t val,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
                         int count);
@@ -98,7 +98,7 @@ private:
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *);
 
-    void dcache_write(int cpu, unsigned long addr, int nb, int32_t val,
+    void dcache_write(int cpu, unsigned long addr, int nb, uint32_t val,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *);
 

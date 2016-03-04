@@ -62,8 +62,8 @@ private:
     static uint32_t qemu_sc_read(void *opaque, uint32_t addr, uint32_t size);
     static void qemu_sc_write(void *opaque, uint32_t addr,
                               uint32_t val, uint32_t size);
-    static int64_t qemu_sc_call_rabbits(void *opaque, int type,
-                              int cpu, unsigned long p1, int64_t val, uint8_t size);
+    static uint64_t qemu_sc_call_rabbits(void *opaque, int type,
+                              int cpu, unsigned long p1, uint64_t val, uint8_t size);
     static void char_dev_read(void *opaque, const uint8_t *data, int len);
 
 public:
