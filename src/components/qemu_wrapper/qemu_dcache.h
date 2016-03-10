@@ -46,7 +46,7 @@ public:
     uint8_t dcache_read_b(int cpu, unsigned long addr,
                         uint32_t (*)(void *,uint32_t, uint32_t),
                         void (*)(void *,uint32_t, uint32_t, uint32_t),void *,
-                        int count); /*since we are calling recursivly our functions
+                        int count); /*since we can call recursivly our functions
                                     we use this var to avoid over counting*/
 
     uint16_t dcache_read_w(int cpu, unsigned long addr,
@@ -88,6 +88,14 @@ public:
 
     void info(void);
     void consume_cpu_cycles(void);
+
+    //Use by a CPU to invalidate it's own cache (generally sw invalidation)
+    void dcache_invalidate(int cpu, unsigned long addr);
+
+    //Use by a CPU to flush it's own cache (generally sw flush)
+    void dcache_flush(int cpu, unsigned long addr,
+                        void (*)(void *,uint32_t, uint32_t, uint32_t),void *);
+
 
 
 private:

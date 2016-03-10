@@ -128,14 +128,13 @@ void qemu_dcache::consume_cpu_cycles(void)
     unsigned long max = 0;
     int i;
 
-    for(i = 0; i < num_cpu; i++)
+    for(i = 0; i < num_cpu; i++) {
         if(ns_dcache[i] > max)
             max = ns_dcache[i];
+        ns_dcache[i] = 0;
+    }
 
     wait(max,SC_NS);
-
-    for(i = 0; i < num_cpu; i++)
-        ns_dcache[i] = 0;
 #endif
 }
 
@@ -439,4 +438,26 @@ void qemu_dcache::dcache_write_b(int cpu, unsigned long addr, uint8_t val,
     }
 
     dcache_write(cpu, addr, 1, (uint32_t)val, read_mem, write_mem, opaque);
+}
+
+void qemu_dcache::dcache_invalidate(int cpu, unsigned long addr)
+{
+    int idx, start_idx;
+    unsigned long tag;
+
+    tag = addr >> DCACHE_LINE_BITS;
+    start_idx = tag & (DCACHE_LINES - 1) & ~((1 << DCACHE_ASSOC_BITS) - 1);
+    idx = dcache_line_present(cpu, start_idx, tag);
+
+    if(idx != -1)
+        dcache_flags[cpu][idx].state = INVALID;
+}
+
+void qemu_dcache::dcache_flush(int cpu, unsigned long addr,
+                    void (*write_mem)(void *,uint32_t, uint32_t, uint32_t),void *opaque)
+{
+//To be implemented when we deal with write back
+//now we just call cache invalidate
+
+    dcache_invalidate(cpu,addr);
 }

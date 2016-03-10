@@ -166,13 +166,13 @@ void qemu_icache::consume_cpu_cycles(void)
     unsigned long max = 0;
     int i;
 
-    for(i = 0; i < num_cpu; i++)
+    for(i = 0; i < num_cpu; i++) {
         if(ns_icache[i] > max)
             max = ns_icache[i];
+        ns_icache[i] = 0;
+    }
 
     wait(max,SC_NS);
-    for(i = 0; i < num_cpu; i++)
-        ns_icache[i] = 0;
 #endif
 }
 
